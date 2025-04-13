@@ -2,6 +2,8 @@
 
 import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
+import { auth } from '../firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 interface UserData {
   name: string
@@ -14,6 +16,69 @@ interface AuthResult {
   message?: string
   userId?: string
 }
+
+// Sign up a new user
+export const signUp = async (email: string, password: string) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Sign in an existing user
+export const signIn = async (email: string, password: string) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Sign out the current user
+export const logOut = async () => {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete("session_id");
+    await signOut(auth);
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Google login
+export const signInWithGoogle = async () => {
+  'use client';
+  
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    
+    // Set a session cookie
+    const cookieStore = await cookies();
+    const sessionId = Math.random().toString(36).substring(2);
+    cookieStore.set("session_id", sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      path: "/",
+    });
+    
+    revalidatePath("/");
+    
+    return user;
+  } catch (error) {
+    console.error("Google sign-in error:", error);
+    throw error;
+  }
+};
 
 // This is a mock implementation. In a real app, you would connect to a database
 export async function createUser(userData: UserData): Promise<AuthResult> {
@@ -36,13 +101,14 @@ export async function createUser(userData: UserData): Promise<AuthResult> {
     }
 
     // Set a mock session cookie
-    const sessionId = Math.random().toString(36).substring(2)
-    cookies().set("session_id", sessionId, {
+    const cookieStore = await cookies();
+    const sessionId = Math.random().toString(36).substring(2);
+    cookieStore.set("session_id", sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
-    })
+    });
 
     return {
       success: true,
@@ -76,13 +142,14 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     }
 
     // Set a mock session cookie
-    const sessionId = Math.random().toString(36).substring(2)
-    cookies().set("session_id", sessionId, {
+    const cookieStore = await cookies();
+    const sessionId = Math.random().toString(36).substring(2);
+    cookieStore.set("session_id", sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
-    })
+    });
 
     return {
       success: true,
@@ -100,11 +167,15 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
 export async function logoutUser(): Promise<AuthResult> {
   try {
     // Delete the session cookie
-    cookies().delete("session_id")
-
+    const cookieStore = await cookies();
+    cookieStore.delete("session_id");
+    
+    // Call Firebase signOut
+    await signOut(auth);
+    
     // Revalidate all pages that might depend on authentication state
-    revalidatePath("/")
-
+    revalidatePath("/");
+    
     return {
       success: true,
     }

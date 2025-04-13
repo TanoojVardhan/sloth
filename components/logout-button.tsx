@@ -28,7 +28,8 @@ export function LogoutButton({ variant = "ghost", size = "default", className }:
           title: "Logged out",
           description: "You have been successfully logged out.",
         })
-        router.push("/login")
+        // Use window.location for hard navigation
+        window.location.href = "/login"
       } else {
         toast({
           title: "Error",

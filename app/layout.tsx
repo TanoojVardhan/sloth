@@ -13,7 +13,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Sloth - AI Planning Assistant",
   description: "Plan smarter, not harder with Sloth AI Planning Assistant",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -22,9 +22,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+          enableColorScheme={false}
+        >
           <AIAssistantProvider>
             <TaskDialogProvider>
               <div className="flex min-h-screen flex-col">
@@ -39,6 +45,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-import './globals.css'

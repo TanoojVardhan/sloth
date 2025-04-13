@@ -248,9 +248,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <DropdownMenuItem>Profile</DropdownMenuItem>
                   <DropdownMenuItem>Settings</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                  <DropdownMenuItem asChild>
+                    <LogoutButton />
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

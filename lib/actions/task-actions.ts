@@ -1,6 +1,7 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { db } from '../firebase';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 export interface Task {
   id: string
@@ -12,114 +13,44 @@ export interface Task {
   description?: string
 }
 
-// Mock database
-let tasks: Task[] = [
-  {
-    id: "1",
-    title: "Complete project proposal",
-    completed: false,
-    dueDate: "2025-04-15",
-    priority: "high",
-    tags: ["work", "project"],
-    description: "Finish the quarterly project proposal including budget and timeline estimates.",
-  },
-  {
-    id: "2",
-    title: "Schedule team meeting",
-    completed: false,
-    dueDate: "2025-04-14",
-    priority: "medium",
-    tags: ["work", "meeting"],
-  },
-  {
-    id: "3",
-    title: "Review quarterly goals",
-    completed: true,
-    dueDate: "2025-04-10",
-    priority: "medium",
-    tags: ["work", "planning"],
-  },
-  {
-    id: "4",
-    title: "Update documentation",
-    completed: false,
-    dueDate: "2025-04-20",
-    priority: "low",
-    tags: ["work", "documentation"],
-  },
-]
+const tasksCollection = collection(db, 'tasks');
 
-export async function getTasks(): Promise<Task[]> {
-  // Simulate server delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return [...tasks]
-}
-
-export async function getTaskById(id: string): Promise<Task | undefined> {
-  // Simulate server delay
-  await new Promise((resolve) => setTimeout(resolve, 300))
-  return tasks.find((task) => task.id === id)
-}
-
-export async function createTask(task: Omit<Task, "id">): Promise<Task> {
-  // Simulate server delay
-  await new Promise((resolve) => setTimeout(resolve, 800))
-
-  const newTask: Task = {
-    ...task,
-    id: Date.now().toString(),
+// Add a new task
+export const addTask = async (task: { title: string; description: string; completed: boolean }) => {
+  try {
+    const docRef = await addDoc(tasksCollection, task);
+    return docRef.id;
+  } catch (error) {
+    throw error;
   }
+};
 
-  tasks.push(newTask)
-  revalidatePath("/dashboard/tasks")
-  revalidatePath("/dashboard")
-
-  return newTask
-}
-
-export async function updateTask(task: Task): Promise<Task> {
-  // Simulate server delay
-  await new Promise((resolve) => setTimeout(resolve, 800))
-
-  const index = tasks.findIndex((t) => t.id === task.id)
-
-  if (index === -1) {
-    throw new Error("Task not found")
+// Get all tasks
+export const getTasks = async () => {
+  try {
+    const querySnapshot = await getDocs(tasksCollection);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    throw error;
   }
+};
 
-  tasks[index] = task
-  revalidatePath("/dashboard/tasks")
-  revalidatePath("/dashboard")
-
-  return task
-}
-
-export async function deleteTask(id: string): Promise<void> {
-  // Simulate server delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
-
-  tasks = tasks.filter((task) => task.id !== id)
-  revalidatePath("/dashboard/tasks")
-  revalidatePath("/dashboard")
-}
-
-export async function toggleTaskCompletion(id: string): Promise<Task> {
-  // Simulate server delay
-  await new Promise((resolve) => setTimeout(resolve, 300))
-
-  const index = tasks.findIndex((t) => t.id === id)
-
-  if (index === -1) {
-    throw new Error("Task not found")
+// Update a task
+export const updateTask = async (id: string, updatedTask: Partial<{ title: string; description: string; completed: boolean }>) => {
+  try {
+    const taskDoc = doc(db, 'tasks', id);
+    await updateDoc(taskDoc, updatedTask);
+  } catch (error) {
+    throw error;
   }
+};
 
-  tasks[index] = {
-    ...tasks[index],
-    completed: !tasks[index].completed,
+// Delete a task
+export const deleteTask = async (id: string) => {
+  try {
+    const taskDoc = doc(db, 'tasks', id);
+    await deleteDoc(taskDoc);
+  } catch (error) {
+    throw error;
   }
-
-  revalidatePath("/dashboard/tasks")
-  revalidatePath("/dashboard")
-
-  return tasks[index]
-}
+};
