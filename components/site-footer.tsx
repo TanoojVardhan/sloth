@@ -3,100 +3,94 @@ import { SlothLogo } from "@/components/sloth-logo"
 
 export function SiteFooter() {
   const currentYear = new Date().getFullYear()
-
   return (
-    <footer className="w-full border-t border-slate-200 bg-white py-6">
+    <footer className="w-full border-t border-primary/10 bg-white/90 backdrop-blur-sm py-6">
       <div className="container px-4 md:px-6">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <SlothLogo className="h-8 w-8" />
-              <span className="text-xl font-bold">Sloth</span>
+              <SlothLogo size="sm" />
+              <span className="text-xl font-bold text-primary">Sloth Planner</span>
             </div>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-foreground/70">
               AI-powered planning assistant that helps you manage tasks, schedule, and goals efficiently. Always free.
             </p>
           </div>
           <div>
-            <h3 className="mb-4 text-sm font-semibold">Product</h3>
+            <h3 className="mb-4 text-sm font-semibold text-primary">Resources</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="#features" className="text-slate-500 hover:text-slate-900">
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
-                  Roadmap
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
-                  Integrations
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
-                  Changelog
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="mb-4 text-sm font-semibold">Resources</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
+                <Link href="/docs/documentation" className="text-foreground/70 hover:text-foreground">
                   Documentation
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
-                  Guides
+                <Link href="/docs/guides" className="text-foreground/70 hover:text-foreground">
+                  User Guides
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
-                  Support
+                <Link href="/docs/tutorials" className="text-foreground/70 hover:text-foreground">
+                  Tutorials
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
-                  API
+                <Link href="/docs/faq" className="text-foreground/70 hover:text-foreground">
+                  FAQ
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/api" className="text-foreground/70 hover:text-foreground">
+                  API Documentation
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <h3 className="mb-4 text-sm font-semibold">Company</h3>
+            <h3 className="mb-4 text-sm font-semibold text-primary">Company</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
-                  About
+                <Link href="/about" className="text-foreground/70 hover:text-foreground">
+                  About Us
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
+                <Link href="/mission" className="text-foreground/70 hover:text-foreground">
+                  Our Mission
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="text-foreground/70 hover:text-foreground">
                   Blog
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
+                <Link href="/contact" className="text-foreground/70 hover:text-foreground">
                   Contact
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-slate-500 hover:text-slate-900">
+                <Link href="/privacy" className="text-foreground/70 hover:text-foreground">
                   Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="text-foreground/70 hover:text-foreground">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link href="/support" className="text-foreground/70 hover:text-foreground">
+                  Support
                 </Link>
               </li>
             </ul>
           </div>
         </div>
-        <div className="mt-8 flex flex-col items-center justify-between border-t border-slate-200 pt-8 md:flex-row">
-          <p className="mb-4 text-sm text-slate-500 md:mb-0">© {currentYear} Sloth AI. All rights reserved.</p>
+        <div className="mt-8 flex flex-col items-center justify-between border-t border-primary/10 pt-8 md:flex-row">
+          <p className="mb-4 text-sm text-foreground/60 md:mb-0">© {currentYear} Sloth Planner. All rights reserved.</p>
           <div className="flex space-x-6">
-            <Link href="#" className="text-slate-500 hover:text-slate-900">
+            <Link href="https://twitter.com/slothplanner" className="text-foreground/60 hover:text-foreground">
               <span className="sr-only">Twitter</span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -113,7 +107,7 @@ export function SiteFooter() {
                 <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
               </svg>
             </Link>
-            <Link href="#" className="text-slate-500 hover:text-slate-900">
+            <Link href="https://github.com/slothplanner" className="text-foreground/60 hover:text-foreground">
               <span className="sr-only">GitHub</span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -131,7 +125,7 @@ export function SiteFooter() {
                 <path d="M9 18c-4.51 2-5-2-7-2" />
               </svg>
             </Link>
-            <Link href="#" className="text-slate-500 hover:text-slate-900">
+            <Link href="https://linkedin.com/company/slothplanner" className="text-foreground/60 hover:text-foreground">
               <span className="sr-only">LinkedIn</span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"

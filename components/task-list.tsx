@@ -18,8 +18,16 @@ import { Badge } from "@/components/ui/badge"
 import { TaskDialog } from "@/components/task-dialog"
 import { useTaskDialog } from "@/hooks/use-task-dialog"
 import { useAIAssistant } from "@/hooks/use-ai-assistant"
-import { getTasks, deleteTask, toggleTaskCompletion, createTask, type Task } from "@/lib/actions/task-actions"
+import {
+  getTasks,
+  deleteTask,
+  toggleTaskCompletion,
+  createTask,
+  type Task,
+  type TaskFormData,
+} from "@/lib/services/task-service"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -29,12 +37,15 @@ export default function TaskList() {
   const { isOpen, openTaskDialog, closeTaskDialog, taskToEdit, setTaskToEdit } = useTaskDialog()
   const { startListening } = useAIAssistant()
   const { toast } = useToast()
+  const { user } = useAuth()
 
   // Fetch tasks on component mount
   useEffect(() => {
     const fetchTasks = async () => {
+      if (!user) return
+
       try {
-        const fetchedTasks = await getTasks()
+        const fetchedTasks = await getTasks(user.uid)
         setTasks(fetchedTasks)
       } catch (error) {
         toast({
@@ -47,21 +58,27 @@ export default function TaskList() {
       }
     }
 
-    fetchTasks()
-  }, [toast])
+    if (user) {
+      fetchTasks()
+    } else {
+      setIsLoading(false)
+    }
+  }, [user, toast])
 
   const handleAddTask = async () => {
-    if (!newTaskTitle.trim()) return
-
+    if (!newTaskTitle.trim() || !user) {
+      console.warn("Task title is empty or user is not authenticated.", { newTaskTitle, user }) // Add warning
+      return
+    }
     setIsAddingTask(true)
-
     try {
-      const newTask = await createTask({
+      const taskData: TaskFormData = {
         title: newTaskTitle,
         completed: false,
         priority: "medium",
-      })
-
+      }
+      console.log("Adding task with data:", taskData) // Add logging
+      const newTask = await createTask(taskData, user.uid)
       setTasks([...tasks, newTask])
       setNewTaskTitle("")
       toast({
@@ -69,6 +86,7 @@ export default function TaskList() {
         description: "Your task has been added successfully.",
       })
     } catch (error) {
+      console.error("Error adding task:", error) // Log the error
       toast({
         title: "Error",
         description: "Failed to add task. Please try again.",
@@ -80,8 +98,10 @@ export default function TaskList() {
   }
 
   const handleToggleTaskCompletion = async (taskId: string) => {
+    if (!user) return
+
     try {
-      const updatedTask = await toggleTaskCompletion(taskId)
+      const updatedTask = await toggleTaskCompletion(taskId, user.uid)
       setTasks(tasks.map((task) => (task.id === taskId ? updatedTask : task)))
     } catch (error) {
       toast({
@@ -93,8 +113,10 @@ export default function TaskList() {
   }
 
   const handleDeleteTask = async (taskId: string) => {
+    if (!user) return
+
     try {
-      await deleteTask(taskId)
+      await deleteTask(taskId, user.uid)
       setTasks(tasks.filter((task) => task.id !== taskId))
       toast({
         title: "Task deleted",
@@ -134,7 +156,7 @@ export default function TaskList() {
       case "low":
         return "bg-green-100 text-green-800"
       default:
-        return "bg-slate-100 text-slate-800"
+        return "bg-foreground/10 text-foreground/70"
     }
   }
 
@@ -155,7 +177,7 @@ export default function TaskList() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Tasks</CardTitle>
-          <Button size="sm" className="bg-slate-800 hover:bg-slate-700" onClick={() => openTaskDialog()}>
+          <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => openTaskDialog()}>
             <Plus className="h-4 w-4 mr-1" /> Add Task
           </Button>
         </CardHeader>
@@ -177,24 +199,24 @@ export default function TaskList() {
               <Button
                 onClick={handleAddTask}
                 size="sm"
-                className="bg-slate-800 hover:bg-slate-700"
+                className="bg-primary hover:bg-primary/90"
                 disabled={isAddingTask || !newTaskTitle.trim()}
               >
                 {isAddingTask ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               </Button>
-              <Button onClick={handleVoiceAddTask} size="sm" variant="outline" className="text-slate-700">
+              <Button onClick={handleVoiceAddTask} size="sm" variant="outline" className="text-foreground/70">
                 <Mic className="h-4 w-4" />
               </Button>
             </div>
 
             {isLoading ? (
               <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                <Loader2 className="h-8 w-8 animate-spin text-foreground/40" />
               </div>
             ) : tasks.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-slate-500 mb-4">You don't have any tasks yet.</p>
-                <Button onClick={() => openTaskDialog()} className="bg-slate-800 hover:bg-slate-700">
+                <p className="text-foreground/60 mb-4">You don't have any tasks yet.</p>
+                <Button onClick={() => openTaskDialog()} className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" /> Create Your First Task
                 </Button>
               </div>
@@ -204,8 +226,8 @@ export default function TaskList() {
                   <div
                     key={task.id}
                     className={cn(
-                      "flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-slate-50",
-                      task.completed ? "bg-slate-50/50 border-slate-100" : "bg-white",
+                      "flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-accent/50",
+                      task.completed ? "bg-accent/30 border-accent/30" : "bg-white",
                       isOverdue(task.dueDate) && !task.completed && "border-red-200 bg-red-50/30",
                     )}
                   >
@@ -214,20 +236,20 @@ export default function TaskList() {
                         checked={task.completed}
                         onCheckedChange={() => handleToggleTaskCompletion(task.id)}
                         id={`task-${task.id}`}
-                        className={task.completed ? "text-slate-400" : ""}
+                        className={task.completed ? "text-foreground/40" : ""}
                       />
                       <div className="flex flex-col min-w-0">
                         <label
                           htmlFor={`task-${task.id}`}
                           className={cn(
                             "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer",
-                            task.completed && "line-through text-slate-400",
+                            task.completed && "line-through text-foreground/40",
                           )}
                         >
                           {task.title}
                         </label>
                         {task.description && (
-                          <p className="text-xs text-slate-500 mt-1 truncate max-w-[300px]">{task.description}</p>
+                          <p className="text-xs text-foreground/60 mt-1 truncate max-w-[300px]">{task.description}</p>
                         )}
                         <div className="flex flex-wrap gap-1 mt-1">
                           {task.tags?.map((tag) => (
@@ -243,7 +265,7 @@ export default function TaskList() {
                         <div
                           className={cn(
                             "flex items-center text-xs",
-                            isOverdue(task.dueDate) && !task.completed ? "text-red-500" : "text-slate-500",
+                            isOverdue(task.dueDate) && !task.completed ? "text-red-500" : "text-foreground/60",
                           )}
                         >
                           {isOverdue(task.dueDate) && !task.completed ? (

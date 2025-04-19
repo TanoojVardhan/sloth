@@ -1,121 +1,65 @@
 "use server"
 
-import { cookies } from "next/headers"
+import { z } from "zod"
 import { revalidatePath } from "next/cache"
-import { auth } from '../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { cookies } from "next/headers"
+import { auth } from "@/lib/firebase"
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
+import { createUserProfile } from "@/lib/services/user-service"
 
-interface UserData {
-  name: string
-  email: string
-  password: string
-}
+const userSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+})
 
-interface AuthResult {
-  success: boolean
-  message?: string
-  userId?: string
-}
+export type UserFormData = z.infer<typeof userSchema>
 
-// Sign up a new user
-export const signUp = async (email: string, password: string) => {
+export async function createUser(userData: UserFormData) {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error) {
-    throw error;
-  }
-};
+    // Validate the data
+    const validatedData = userSchema.parse(userData)
 
-// Sign in an existing user
-export const signIn = async (email: string, password: string) => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error) {
-    throw error;
-  }
-};
+    // Create the user in Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(auth, validatedData.email, validatedData.password)
 
-// Sign out the current user
-export const logOut = async () => {
-  try {
-    const cookieStore = await cookies();
-    cookieStore.delete("session_id");
-    await signOut(auth);
-  } catch (error) {
-    throw error;
-  }
-}
+    const user = userCredential.user
 
-// Google login
-export const signInWithGoogle = async () => {
-  'use client';
-  
-  try {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-    
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    
-    // Set a session cookie
-    const cookieStore = await cookies();
-    const sessionId = Math.random().toString(36).substring(2);
-    cookieStore.set("session_id", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    });
-    
-    revalidatePath("/");
-    
-    return user;
-  } catch (error) {
-    console.error("Google sign-in error:", error);
-    throw error;
-  }
-};
+    // Create the user profile in Firestore
+    await createUserProfile(user.uid, {
+      name: validatedData.name,
+      email: validatedData.email,
+      emailVerified: user.emailVerified,
+    })
 
-// This is a mock implementation. In a real app, you would connect to a database
-export async function createUser(userData: UserData): Promise<AuthResult> {
-  try {
-    // Simulate server delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    revalidatePath("/login")
 
-    // In a real implementation, you would:
-    // 1. Check if user already exists
-    // 2. Hash the password
-    // 3. Store user in database
-    // 4. Create a session
+    return {
+      success: true,
+      message: "User created successfully",
+      userId: user.uid,
+    }
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        message: error.errors[0].message,
+      }
+    }
 
-    // For demo purposes, we'll just check if the email contains "error" to simulate an error
-    if (userData.email.includes("error")) {
+    // Handle Firebase-specific errors
+    if (error.code === "auth/email-already-in-use") {
       return {
         success: false,
         message: "A user with this email already exists.",
       }
     }
 
-    // Set a mock session cookie
-    const cookieStore = await cookies();
-    const sessionId = Math.random().toString(36).substring(2);
-    cookieStore.set("session_id", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    });
-
-    return {
-      success: true,
-      userId: "user_" + Math.random().toString(36).substring(2),
-    }
-  } catch (error) {
-    console.error("Error creating user:", error)
     return {
       success: false,
       message: "An unexpected error occurred. Please try again.",
@@ -123,40 +67,24 @@ export async function createUser(userData: UserData): Promise<AuthResult> {
   }
 }
 
-export async function loginUser(email: string, password: string): Promise<AuthResult> {
+export async function loginUser(credentials: { email: string; password: string }) {
   try {
-    // Simulate server delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // In a real implementation, you would:
-    // 1. Find the user by email
-    // 2. Verify the password
-    // 3. Create a session
-
-    // For demo purposes, we'll just check if the email contains "error" to simulate an error
-    if (email.includes("error")) {
+    // Attempt to sign in with Firebase
+    const result = await signInWithEmailAndPassword(auth, credentials.email, credentials.password)
+    console.log("Login successful for user:", result.user.uid)
+    return {
+      success: true,
+    }
+  } catch (error: any) {
+    // Handle Firebase-specific errors
+    if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
+      console.error("Login failed: Invalid email or password.")
       return {
         success: false,
         message: "Invalid email or password.",
       }
     }
-
-    // Set a mock session cookie
-    const cookieStore = await cookies();
-    const sessionId = Math.random().toString(36).substring(2);
-    cookieStore.set("session_id", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    });
-
-    return {
-      success: true,
-      userId: "user_" + Math.random().toString(36).substring(2),
-    }
-  } catch (error) {
-    console.error("Error logging in:", error)
+    console.error("Unexpected login error:", error)
     return {
       success: false,
       message: "An unexpected error occurred. Please try again.",
@@ -164,23 +92,22 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
   }
 }
 
-export async function logoutUser(): Promise<AuthResult> {
+export async function logoutUser() {
   try {
+    // Sign out from Firebase
+    await auth.signOut()
+
     // Delete the session cookie
-    const cookieStore = await cookies();
-    cookieStore.delete("session_id");
-    
-    // Call Firebase signOut
-    await signOut(auth);
-    
+    cookies().delete("next-auth.session-token")
+    cookies().delete("__Secure-next-auth.session-token")
+
     // Revalidate all pages that might depend on authentication state
-    revalidatePath("/");
-    
+    revalidatePath("/")
+
     return {
       success: true,
     }
   } catch (error) {
-    console.error("Error logging out:", error)
     return {
       success: false,
       message: "An unexpected error occurred. Please try again.",

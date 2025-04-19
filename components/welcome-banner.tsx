@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Mic } from "lucide-react"
 import { useAIAssistant } from "@/hooks/use-ai-assistant"
+import { useAuth } from "@/contexts/auth-context"
 
 export function WelcomeBanner() {
   const [isVisible, setIsVisible] = useState(true)
   const { startListening } = useAIAssistant()
+  const { user } = useAuth()
 
   if (!isVisible) {
     return null
@@ -19,12 +21,14 @@ export function WelcomeBanner() {
   }
 
   return (
-    <Card className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+    <Card className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <h2 className="text-xl font-bold">Welcome to your AI Planner</h2>
-            <p className="text-slate-200">
+            <h2 className="text-xl font-bold">
+              {user?.displayName ? `Welcome, ${user.displayName.split(" ")[0]}!` : "Welcome to your Planner"}
+            </h2>
+            <p className="text-primary-foreground/90">
               Get started by adding your first task or exploring the dashboard. Our AI will help you prioritize and
               manage your time effectively.
             </p>
@@ -36,7 +40,7 @@ export function WelcomeBanner() {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-transparent text-white hover:bg-white/10 hover:text-white"
+                className="bg-transparent text-primary-foreground border-primary-foreground/20 hover:bg-primary-foreground/10 hover:text-primary-foreground"
               >
                 Watch tutorial
               </Button>
@@ -46,7 +50,7 @@ export function WelcomeBanner() {
             variant="ghost"
             size="icon"
             onClick={() => setIsVisible(false)}
-            className="text-slate-200 hover:bg-white/10 hover:text-white"
+            className="text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
           >
             <X className="h-5 w-5" />
             <span className="sr-only">Close</span>

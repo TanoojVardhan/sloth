@@ -22,8 +22,9 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
 import { useAIAssistant } from "@/hooks/use-ai-assistant"
-import { createTask, updateTask, type Task } from "@/lib/actions/task-actions"
+import { createTask, updateTask, type Task, type TaskFormData } from "@/lib/services/task-service"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 
 interface TaskDialogProps {
   open: boolean
@@ -43,6 +44,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { startListening } = useAIAssistant()
   const { toast } = useToast()
+  const { user } = useAuth()
 
   // Reset form when dialog opens/closes or task changes
   useEffect(() => {
@@ -63,6 +65,18 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
     }
   }, [open, task])
 
+  // Add a console log to check auth state when the dialog opens
+  useEffect(() => {
+    if (open) {
+      console.log("TaskDialog opened - Auth state:", { 
+        isAuthenticated: !!user, 
+        userId: user?.uid,
+        userEmail: user?.email,
+        providerId: user?.providerId
+      });
+    }
+  }, [open, user]);
+
   const handleSave = async () => {
     if (!title.trim()) {
       toast({
@@ -73,46 +87,111 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
       return
     }
 
+    if (!user) {
+      console.error("User not authenticated when saving task");
+      toast({
+        title: "Error",
+        description: "You must be logged in to create tasks",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Print full user object for debugging (removing sensitive info)
+    const userDebug = {
+      uid: user.uid,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      isAnonymous: user.isAnonymous,
+      providerId: user.providerId,
+      authProvider: user.providerData?.length > 0 ? user.providerData[0].providerId : 'unknown'
+    };
+    
+    console.log("Starting task save process with authenticated user:", userDebug);
     setIsSubmitting(true)
 
     try {
-      const taskData: Omit<Task, "id"> = {
+      // Create task data without the dueDate first
+      const taskData: TaskFormData = {
         title,
         description: description || undefined,
         priority,
         completed: task?.completed || false,
-        dueDate: dueDate ? dueDate.toISOString().split("T")[0] : undefined,
         tags: tags.length > 0 ? tags : undefined,
       }
 
-      let savedTask: Task
+      // Add dueDate if it exists, with explicit formatting and validation
+      if (dueDate && dueDate instanceof Date && !isNaN(dueDate.getTime())) {
+        const year = dueDate.getFullYear();
+        const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const day = String(dueDate.getDate()).padStart(2, '0');
+        taskData.dueDate = `${year}-${month}-${day}`;
+        console.log("Formatted due date:", taskData.dueDate);
+      }
 
+      console.log("Task data prepared:", JSON.stringify(taskData));
+      console.log("User ID for task:", user.uid);
+      
+      let savedTask: Task;
+      
       if (task?.id) {
         // Update existing task
-        savedTask = await updateTask({ ...taskData, id: task.id })
+        console.log("Updating existing task with ID:", task.id);
+        savedTask = await updateTask(task.id, taskData, user.uid);
+        console.log("Task updated successfully:", savedTask);
         toast({
           title: "Task updated",
           description: "Your task has been updated successfully.",
-        })
+        });
       } else {
         // Create new task
-        savedTask = await createTask(taskData)
-        toast({
-          title: "Task created",
-          description: "Your task has been created successfully.",
-        })
+        console.log("Creating new task...");
+        try {
+          savedTask = await createTask(taskData, user.uid);
+          console.log("Task created successfully:", savedTask);
+          toast({
+            title: "Task created",
+            description: "Your task has been created successfully.",
+          });
+        } catch (createError) {
+          console.error("Detailed create task error:", createError);
+          throw createError;
+        }
       }
 
-      onSave(savedTask)
-      onOpenChange(false)
+      onSave(savedTask);
+      onOpenChange(false);
     } catch (error) {
+      console.error("Error details:", error);
+      
+      if (error instanceof Error) {
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      
+      // More descriptive error message
+      let errorMessage = "Failed to save task. Please try again.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Add additional context for specific errors
+        if (errorMessage.includes("permission-denied") || errorMessage.includes("unauthorized")) {
+          errorMessage = "You don't have permission to create or modify this task.";
+        } else if (errorMessage.includes("network")) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else if (errorMessage.includes("unauthenticated") || errorMessage.includes("auth")) {
+          errorMessage = "Authentication error. Please log out and log back in.";
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to save task. Please try again.",
+        description: errorMessage,
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
@@ -206,7 +285,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
                   <Button
                     id="due-date"
                     variant={"outline"}
-                    className={cn("justify-start text-left font-normal", !date && "text-slate-500")}
+                    className={cn("justify-start text-left font-normal", !date && "text-foreground/60")}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {date ? format(date, "PPP") : "Pick a date"}

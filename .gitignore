@@ -25,3 +25,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+sloth-c990a-firebase-adminsdk-fbsvc-16b8b23ae6.json

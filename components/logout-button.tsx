@@ -1,11 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { LogOut, Loader2 } from "lucide-react"
-import { logoutUser } from "@/lib/actions/auth-actions"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 
 interface LogoutButtonProps {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
@@ -15,32 +14,22 @@ interface LogoutButtonProps {
 
 export function LogoutButton({ variant = "ghost", size = "default", className }: LogoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
   const { toast } = useToast()
+  const { logout } = useAuth()
 
   const handleLogout = async () => {
     setIsLoading(true)
     try {
-      const result = await logoutUser()
+      await logout()
 
-      if (result.success) {
-        toast({
-          title: "Logged out",
-          description: "You have been successfully logged out.",
-        })
-        // Use window.location for hard navigation
-        window.location.href = "/login"
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to log out. Please try again.",
-          variant: "destructive",
-        })
-      }
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      })
     } catch (error) {
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: "Failed to log out. Please try again.",
         variant: "destructive",
       })
     } finally {

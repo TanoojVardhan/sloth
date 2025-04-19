@@ -7,13 +7,21 @@ import { TaskDialogProvider } from "@/hooks/use-task-dialog"
 import { AIAssistantProvider } from "@/hooks/use-ai-assistant"
 import { PersistentVoiceAssistant } from "@/components/persistent-voice-assistant"
 import { Toaster } from "@/components/ui/toaster"
+import { UserProvider } from "@/contexts/user-context"
+import { AuthProvider } from "@/contexts/auth-context"
+import { MainHeader } from "@/components/main-header"
+import { SiteFooter } from "@/components/site-footer"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sloth - AI Planning Assistant",
-  description: "Plan smarter, not harder with Sloth AI Planning Assistant",
-  generator: 'v0.dev'
+  title: "Sloth Planner - AI Planning Assistant",
+  description: "Plan smarter, not harder with Sloth Planner",
+  generator: 'v0.dev',
+  icons: {
+    icon: '/images/sloth-planner-logo.png',
+    apple: '/images/sloth-planner-logo.png',
+  }
 }
 
 export default function RootLayout({
@@ -23,24 +31,25 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-          enableColorScheme={false}
-        >
-          <AIAssistantProvider>
-            <TaskDialogProvider>
-              <div className="flex min-h-screen flex-col">
-                <div className="flex-1">{children}</div>
-              </div>
-              <PersistentVoiceAssistant />
-              <Toaster />
-            </TaskDialogProvider>
-          </AIAssistantProvider>
-        </ThemeProvider>
+      <head />
+      <body className={`${inter.className} min-h-screen bg-[#e0cdb7]`}>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            <UserProvider>
+              <AIAssistantProvider>
+                <TaskDialogProvider>
+                  <div className="flex min-h-screen flex-col">
+                    <MainHeader />
+                    <div className="flex-1">{children}</div>
+                    <SiteFooter />
+                  </div>
+                  <PersistentVoiceAssistant />
+                  <Toaster />
+                </TaskDialogProvider>
+              </AIAssistantProvider>
+            </UserProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )

@@ -1,300 +1,618 @@
-import type { Metadata } from "next"
-import DashboardLayout from "@/components/dashboard-layout"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { DashboardShell } from "@/components/dashboard-shell"
-import { SiteFooter } from "@/components/site-footer"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+"use client"
+
+import { useState, useEffect } from "react"
+import { useAuth } from "@/contexts/auth-context"
+import { doc, updateDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-
-export const metadata: Metadata = {
-  title: "Settings | Sloth AI Planner",
-  description: "Manage your account settings with Sloth AI Planner",
-}
+import { toast } from "@/hooks/use-toast"
+import { Loader2, Upload, User } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function SettingsPage() {
-  return (
-    <DashboardLayout>
-      <div className="flex min-h-screen flex-col">
-        <div className="flex-1">
-          <DashboardShell className="container py-6">
-            <DashboardHeader heading="Settings" text="Manage your account settings and preferences" />
+  // User context and state
+  const { user, isLoading: authLoading } = useAuth()
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  
+  // User settings state
+  const [displayName, setDisplayName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [bio, setBio] = useState("")
+  const [jobTitle, setJobTitle] = useState("")
+  const [company, setCompany] = useState("")
+  const [profileImage, setProfileImage] = useState("")
+  const [timezone, setTimezone] = useState("UTC")
+  const [dateFormat, setDateFormat] = useState("MM/DD/YYYY")
+  const [timeFormat, setTimeFormat] = useState("12h")
+  const [notifications, setNotifications] = useState({
+    email: true,
+    push: true,
+    taskReminders: true,
+    eventReminders: true,
+    goalUpdates: true,
+    weeklyDigest: true
+  })
 
-            <Tabs defaultValue="profile" className="w-full">
-              <div className="flex items-center justify-between mb-4">
-                <TabsList className="grid w-full max-w-md grid-cols-4">
-                  <TabsTrigger value="profile">Profile</TabsTrigger>
-                  <TabsTrigger value="account">Account</TabsTrigger>
-                  <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                  <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                </TabsList>
+  // Fetch user settings
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName || "")
+      setEmail(user.email || "")
+      
+      // Get user settings from user metadata/preferences
+      // For now using mock data until we implement actual settings storage
+      setLoading(true)
+      
+      // Simulate fetching settings (would be an actual fetch in production)
+      setTimeout(() => {
+        // Mock additional profile data
+        setPhone("555-123-4567")
+        setBio("Productivity enthusiast and task management aficionado.")
+        setJobTitle("Product Manager")
+        setCompany("Tech Innovations Inc.")
+        setProfileImage(user.photoURL || "")
+        
+        // Default timezone based on browser
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+        setTimezone(userTimezone)
+        setLoading(false)
+      }, 500)
+    }
+  }, [user])
+
+  // Save profile settings
+  const saveProfileSettings = async () => {
+    if (!user) return
+    
+    setSaving(true)
+    try {
+      // Update user profile in firestore
+      const userRef = doc(db, "users", user.uid)
+      await updateDoc(userRef, { 
+        displayName,
+        phone,
+        bio,
+        jobTitle,
+        company,
+        profileImage
+      })
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been updated successfully."
+      })
+    } catch (error) {
+      console.error("Error saving settings:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update profile settings. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+  
+  // Save preferences
+  const savePreferences = async () => {
+    if (!user) return
+    
+    setSaving(true)
+    try {
+      // Update user preferences in firestore
+      const userRef = doc(db, "users", user.uid)
+      await updateDoc(userRef, { 
+        preferences: {
+          timezone,
+          dateFormat,
+          timeFormat,
+        }
+      })
+      
+      toast({
+        title: "Preferences updated",
+        description: "Your preferences have been saved successfully."
+      })
+    } catch (error) {
+      console.error("Error saving preferences:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update preferences. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+  
+  // Save notification settings
+  const saveNotificationSettings = async () => {
+    if (!user) return
+    
+    setSaving(true)
+    try {
+      // Update notification settings in firestore
+      const userRef = doc(db, "users", user.uid)
+      await updateDoc(userRef, { 
+        notificationSettings: notifications
+      })
+      
+      toast({
+        title: "Notification settings updated",
+        description: "Your notification preferences have been saved."
+      })
+    } catch (error) {
+      console.error("Error saving notification settings:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update notification settings. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Handle profile image upload (mock function)
+  const handleImageUpload = () => {
+    // In a real implementation, this would handle file uploads
+    toast({
+      title: "Upload feature",
+      description: "Profile image upload would be implemented here.",
+    })
+  }
+
+  // List of timezones for the timezone selector
+  const timezones = [
+    "UTC",
+    "Africa/Cairo",
+    "America/Anchorage",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "America/New_York",
+    "America/Mexico_City",
+    "Asia/Kolkata", // Indian Standard Time
+    "Asia/Dubai",
+    "Asia/Hong_Kong",
+    "Asia/Jakarta",
+    "Asia/Jerusalem",
+    "Asia/Seoul",
+    "Asia/Shanghai",
+    "Asia/Singapore",
+    "Asia/Tokyo",
+    "Australia/Sydney",
+    "Europe/Berlin",
+    "Europe/London",
+    "Europe/Moscow",
+    "Europe/Paris",
+    "Pacific/Auckland",
+    "Pacific/Honolulu"
+  ]
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="container py-8">
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="preferences">Preferences</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="account">Account</TabsTrigger>
+        </TabsList>
+        
+        {/* Profile Settings */}
+        <TabsContent value="profile" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Information</CardTitle>
+              <CardDescription>Manage your personal information and how others see you</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Profile Image */}
+              <div className="flex flex-col items-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={profileImage || ""} />
+                  <AvatarFallback>
+                    <User className="h-12 w-12" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-medium">Profile Photo</h3>
+                  <p className="text-sm text-muted-foreground">Your profile photo will be visible to others using the platform</p>
+                  <Button onClick={handleImageUpload} type="button" size="sm" className="mt-2">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Change Photo
+                  </Button>
+                </div>
               </div>
 
-              <TabsContent value="profile" className="mt-0 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Profile</CardTitle>
-                    <CardDescription>Manage your public profile information</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex flex-col gap-6 sm:flex-row">
-                      <div className="flex flex-col items-center gap-4">
-                        <Avatar className="h-24 w-24">
-                          <AvatarImage src="/placeholder.svg?height=96&width=96" alt="User" />
-                          <AvatarFallback className="text-lg">JD</AvatarFallback>
-                        </Avatar>
-                        <Button variant="outline" size="sm">
-                          Change Avatar
-                        </Button>
-                      </div>
-                      <div className="flex-1 space-y-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="name">Full Name</Label>
-                          <Input id="name" defaultValue="Jane Doe" />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="username">Username</Label>
-                          <Input id="username" defaultValue="janedoe" />
-                        </div>
-                      </div>
-                    </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Display Name</Label>
+                    <Input
+                      id="name"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      disabled={loading}
+                      placeholder="Your name"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      disabled={true} // Email changes require verification
+                      readOnly
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Email cannot be changed directly. Contact support for assistance.
+                    </p>
+                  </div>
+                </div>
 
-                    <div className="grid gap-2">
-                      <Label htmlFor="bio">Bio</Label>
-                      <Textarea id="bio" placeholder="Tell us about yourself" className="min-h-[120px]" />
-                      <p className="text-xs text-slate-500">Brief description for your profile.</p>
-                    </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      disabled={loading}
+                      placeholder="Your phone number"
+                    />
+                  </div>
 
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <div className="grid gap-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" defaultValue="jane@example.com" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="timezone">Timezone</Label>
-                        <Select defaultValue="america-new_york">
-                          <SelectTrigger id="timezone">
-                            <SelectValue placeholder="Select timezone" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="america-new_york">Eastern Time (ET)</SelectItem>
-                            <SelectItem value="america-chicago">Central Time (CT)</SelectItem>
-                            <SelectItem value="america-denver">Mountain Time (MT)</SelectItem>
-                            <SelectItem value="america-los_angeles">Pacific Time (PT)</SelectItem>
-                            <SelectItem value="etc-utc">UTC</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTitle">Job Title</Label>
+                    <Input
+                      id="jobTitle"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      disabled={loading}
+                      placeholder="Your job title"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company">Company/Organization</Label>
+                  <Input
+                    id="company"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    disabled={loading}
+                    placeholder="Your company or organization"
+                  />
+                </div>
 
-                    <div className="flex justify-end">
-                      <Button className="bg-slate-800 hover:bg-slate-700">Save Changes</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                <div className="space-y-2">
+                  <Label htmlFor="bio">Bio</Label>
+                  <Textarea
+                    id="bio"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    disabled={loading}
+                    placeholder="Write a short bio about yourself"
+                    rows={4}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Brief description that appears on your profile
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={saveProfileSettings} disabled={saving || loading}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save Profile
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Connected Accounts</CardTitle>
+              <CardDescription>Connect your accounts to sync calendar events and tasks</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="rounded-full bg-gray-100 p-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-[#4285F4]"><path d="M2 12C2 6.48 6.48 2 12 2c5.53 0 10 4.47 10 10 0 5.52-4.47 10-10 10-5.52 0-10-4.48-10-10z"></path><circle cx="12" cy="12" r="5"></circle></svg>
+                  </div>
+                  <div>
+                    <p className="font-medium">Google</p>
+                    <p className="text-sm text-muted-foreground">Calendar, Tasks, Contacts</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">Connect</Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="rounded-full bg-gray-100 p-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-[#0078D4]"><rect x="2" y="2" width="20" height="20" rx="5"></rect><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"></path><line x1="17.5" y1="6.5" x2="17.5" y2="6.5"></line></svg>
+                  </div>
+                  <div>
+                    <p className="font-medium">Microsoft</p>
+                    <p className="text-sm text-muted-foreground">Outlook Calendar, To Do</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">Connect</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Preferences Settings */}
+        <TabsContent value="preferences" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Date and Time</CardTitle>
+              <CardDescription>Configure how dates and times are displayed</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Select
+                  value={timezone}
+                  onValueChange={setTimezone}
+                  disabled={loading}
+                >
+                  <SelectTrigger id="timezone" className="w-full">
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timezones.map((tz) => (
+                      <SelectItem key={tz} value={tz}>
+                        {tz.replace("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Your current local time: {new Date().toLocaleTimeString([], {timeZone: timezone})}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="dateFormat">Date Format</Label>
+                <Select
+                  value={dateFormat}
+                  onValueChange={setDateFormat}
+                  disabled={loading}
+                >
+                  <SelectTrigger id="dateFormat">
+                    <SelectValue placeholder="Select date format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                    <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                    <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                    <SelectItem value="DD.MM.YYYY">DD.MM.YYYY</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="timeFormat">Time Format</Label>
+                <Select
+                  value={timeFormat}
+                  onValueChange={setTimeFormat}
+                  disabled={loading}
+                >
+                  <SelectTrigger id="timeFormat">
+                    <SelectValue placeholder="Select time format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="12h">12-hour (AM/PM)</SelectItem>
+                    <SelectItem value="24h">24-hour</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={savePreferences} disabled={saving || loading}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save Changes
+              </Button>
+            </CardFooter>
+          </Card>
 
-              <TabsContent value="account" className="mt-0 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Account</CardTitle>
-                    <CardDescription>Manage your account settings</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Email Address</h3>
-                      <div className="grid gap-2">
-                        <Label htmlFor="current-email">Current Email</Label>
-                        <Input id="current-email" type="email" defaultValue="jane@example.com" disabled />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="new-email">New Email</Label>
-                        <Input id="new-email" type="email" placeholder="Enter new email address" />
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Change Email
-                      </Button>
-                    </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>Customize the look and feel of Sloth Planner</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="theme">Theme</Label>
+                <Select defaultValue="system">
+                  <SelectTrigger id="theme">
+                    <SelectValue placeholder="Select theme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Light</SelectItem>
+                    <SelectItem value="dark">Dark</SelectItem>
+                    <SelectItem value="system">System</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                    <Separator />
+              <div className="space-y-2">
+                <Label htmlFor="startScreen">Default Dashboard View</Label>
+                <Select defaultValue="day">
+                  <SelectTrigger id="startScreen">
+                    <SelectValue placeholder="Select default view" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Today View</SelectItem>
+                    <SelectItem value="week">Week View</SelectItem>
+                    <SelectItem value="month">Month View</SelectItem>
+                    <SelectItem value="tasks">Tasks View</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button disabled={saving || loading}>
+                Save Changes
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        {/* Notifications Settings */}
+        <TabsContent value="notifications" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Settings</CardTitle>
+              <CardDescription>Manage how you receive notifications</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="emailNotifications">Email Notifications</Label>
+                  <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                </div>
+                <Switch
+                  id="emailNotifications"
+                  checked={notifications.email}
+                  onCheckedChange={(checked) => setNotifications({...notifications, email: checked})}
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="pushNotifications">Push Notifications</Label>
+                  <p className="text-sm text-muted-foreground">Receive notifications in your browser</p>
+                </div>
+                <Switch
+                  id="pushNotifications"
+                  checked={notifications.push}
+                  onCheckedChange={(checked) => setNotifications({...notifications, push: checked})}
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="taskReminders">Task Reminders</Label>
+                  <p className="text-sm text-muted-foreground">Get reminded about upcoming and due tasks</p>
+                </div>
+                <Switch
+                  id="taskReminders"
+                  checked={notifications.taskReminders}
+                  onCheckedChange={(checked) => setNotifications({...notifications, taskReminders: checked})}
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="eventReminders">Event Reminders</Label>
+                  <p className="text-sm text-muted-foreground">Get reminded about upcoming calendar events</p>
+                </div>
+                <Switch
+                  id="eventReminders"
+                  checked={notifications.eventReminders}
+                  onCheckedChange={(checked) => setNotifications({...notifications, eventReminders: checked})}
+                  disabled={loading}
+                />
+              </div>
 
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Password</h3>
-                      <div className="grid gap-2">
-                        <Label htmlFor="current-password">Current Password</Label>
-                        <Input id="current-password" type="password" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="new-password">New Password</Label>
-                        <Input id="new-password" type="password" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="confirm-password">Confirm New Password</Label>
-                        <Input id="confirm-password" type="password" />
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Change Password
-                      </Button>
-                    </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="goalUpdates">Goal Updates</Label>
+                  <p className="text-sm text-muted-foreground">Receive progress updates on your goals</p>
+                </div>
+                <Switch
+                  id="goalUpdates"
+                  checked={notifications.goalUpdates}
+                  onCheckedChange={(checked) => setNotifications({...notifications, goalUpdates: checked})}
+                  disabled={loading}
+                />
+              </div>
 
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Delete Account</h3>
-                      <p className="text-sm text-slate-500">
-                        Permanently delete your account and all of your data. This action cannot be undone.
-                      </p>
-                      <Button variant="destructive" size="sm">
-                        Delete Account
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="notifications" className="mt-0 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Notifications</CardTitle>
-                    <CardDescription>Manage how you receive notifications</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Email Notifications</h3>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="email-tasks">Task Reminders</Label>
-                          <p className="text-sm text-slate-500">Receive email reminders for upcoming tasks</p>
-                        </div>
-                        <Switch id="email-tasks" defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="email-events">Calendar Events</Label>
-                          <p className="text-sm text-slate-500">Receive email notifications for upcoming events</p>
-                        </div>
-                        <Switch id="email-events" defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="email-goals">Goal Updates</Label>
-                          <p className="text-sm text-slate-500">Receive weekly updates on your goal progress</p>
-                        </div>
-                        <Switch id="email-goals" />
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">In-App Notifications</h3>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="app-tasks">Task Reminders</Label>
-                          <p className="text-sm text-slate-500">Show notifications for upcoming tasks</p>
-                        </div>
-                        <Switch id="app-tasks" defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="app-events">Calendar Events</Label>
-                          <p className="text-sm text-slate-500">Show notifications for upcoming events</p>
-                        </div>
-                        <Switch id="app-events" defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="app-goals">Goal Updates</Label>
-                          <p className="text-sm text-slate-500">Show notifications for goal progress</p>
-                        </div>
-                        <Switch id="app-goals" defaultChecked />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <Button className="bg-slate-800 hover:bg-slate-700">Save Preferences</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="appearance" className="mt-0 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Appearance</CardTitle>
-                    <CardDescription>Customize how Sloth looks and feels</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Theme</h3>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="border border-slate-200 rounded-md p-2 w-full aspect-square flex items-center justify-center bg-white">
-                            <div className="w-8 h-8 rounded-full bg-slate-800"></div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input type="radio" id="theme-light" name="theme" className="form-radio" defaultChecked />
-                            <Label htmlFor="theme-light">Light</Label>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="border border-slate-200 rounded-md p-2 w-full aspect-square flex items-center justify-center bg-slate-900">
-                            <div className="w-8 h-8 rounded-full bg-white"></div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input type="radio" id="theme-dark" name="theme" className="form-radio" />
-                            <Label htmlFor="theme-dark">Dark</Label>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="border border-slate-200 rounded-md p-2 w-full aspect-square flex items-center justify-center bg-gradient-to-b from-white to-slate-900">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-b from-slate-900 to-white"></div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input type="radio" id="theme-system" name="theme" className="form-radio" />
-                            <Label htmlFor="theme-system">System</Label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Dashboard Layout</h3>
-                      <div className="grid gap-2">
-                        <Label htmlFor="layout">Default View</Label>
-                        <Select defaultValue="tasks">
-                          <SelectTrigger id="layout">
-                            <SelectValue placeholder="Select default view" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="tasks">Tasks</SelectItem>
-                            <SelectItem value="calendar">Calendar</SelectItem>
-                            <SelectItem value="goals">Goals</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <Button className="bg-slate-800 hover:bg-slate-700">Save Preferences</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </DashboardShell>
-        </div>
-        <SiteFooter />
-      </div>
-    </DashboardLayout>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="weeklyDigest">Weekly Digest</Label>
+                  <p className="text-sm text-muted-foreground">Receive a weekly summary of your productivity</p>
+                </div>
+                <Switch
+                  id="weeklyDigest"
+                  checked={notifications.weeklyDigest}
+                  onCheckedChange={(checked) => setNotifications({...notifications, weeklyDigest: checked})}
+                  disabled={loading}
+                />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={saveNotificationSettings} disabled={saving || loading}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save Changes
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        {/* Account Settings */}
+        <TabsContent value="account" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Security</CardTitle>
+              <CardDescription>Manage your account security settings</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button variant="outline" className="w-full justify-start">
+                Change Password
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                Two-Factor Authentication
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                Login History
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">Danger Zone</CardTitle>
+              <CardDescription>Irreversible account actions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="destructive" className="w-full">
+                Delete Account
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }

@@ -1,27 +1,92 @@
 "use client"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/auth-context"
+import { db } from "@/lib/firebase"
+import { collection, getDocs, query, where, Timestamp } from "firebase/firestore"
+
+interface Event {
+  id: string
+  title: string
+  time: string
+  date: number
+  color: string
+}
 
 export function CalendarView() {
+  const [events, setEvents] = useState<Event[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { user } = useAuth()
+
   // Get current date information
   const today = new Date()
   const currentDay = today.getDate()
   const currentMonth = today.getMonth()
   const currentYear = today.getFullYear()
-
+  
   // Calculate first day of month and total days in month
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay()
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+  
+  // Fetch events from Firestore
+  useEffect(() => {
+    const fetchEvents = async () => {
+      if (!user) {
+        setIsLoading(false)
+        return
+      }
 
-  // Sample events data
-  const events = [
-    { date: 15, title: "Team Meeting", time: "10:00 AM", color: "bg-blue-500" },
-    { date: 15, title: "Project Review", time: "2:00 PM", color: "bg-purple-500" },
-    { date: 20, title: "Project Deadline", time: "5:00 PM", color: "bg-red-500" },
-    { date: 25, title: "Client Call", time: "11:30 AM", color: "bg-green-500" },
-  ]
+      try {
+        // Get first and last day of month for query
+        const firstDayOfCurrentMonth = new Date(currentYear, currentMonth, 1)
+        const lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59)
+        
+        // Query events for current month
+        const eventsRef = collection(db, "events")
+        const eventsQuery = query(
+          eventsRef,
+          where("userId", "==", user.uid),
+          where("startDate", ">=", Timestamp.fromDate(firstDayOfCurrentMonth)),
+          where("startDate", "<=", Timestamp.fromDate(lastDayOfCurrentMonth))
+        )
+
+        const querySnapshot = await getDocs(eventsQuery)
+        const fetchedEvents: Event[] = []
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data()
+          const eventDate = data.startDate.toDate()
+          fetchedEvents.push({
+            id: doc.id,
+            title: data.title,
+            time: eventDate.toLocaleTimeString("en-US", { 
+              hour: "numeric", 
+              minute: "2-digit",
+              hour12: true 
+            }),
+            date: eventDate.getDate(),
+            color: data.color || getRandomEventColor()
+          })
+        })
+
+        setEvents(fetchedEvents)
+      } catch (error) {
+        console.error("Error fetching events:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchEvents()
+  }, [user, currentMonth, currentYear])
+
+  // Helper function to get a random event color
+  const getRandomEventColor = () => {
+    const colors = ["bg-blue-500", "bg-purple-500", "bg-red-500", "bg-green-500", "bg-yellow-500"]
+    return colors[Math.floor(Math.random() * colors.length)]
+  }
 
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
   const getEventsForDay = (day: number) => events.filter((event) => event.date === day)
 
   return (
@@ -32,18 +97,15 @@ export function CalendarView() {
             {day}
           </div>
         ))}
-
         {/* Empty cells for days before the first day of month */}
         {Array.from({ length: firstDayOfMonth }).map((_, index) => (
           <div key={`empty-${index}`} className="h-24 border border-slate-100 rounded-md p-1"></div>
         ))}
-
         {/* Calendar days */}
         {Array.from({ length: daysInMonth }).map((_, index) => {
           const day = index + 1
           const dayEvents = getEventsForDay(day)
           const isToday = day === currentDay
-
           return (
             <div
               key={day}
