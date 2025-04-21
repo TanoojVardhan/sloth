@@ -45,22 +45,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    
+    // Set up a safety timeout to prevent infinite loading state
+    timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.error("Firebase auth state check timed out, setting loading to false");
+        setIsLoading(false);
+      }
+    }, 10000); // 10 second safety timeout
+    
     // If mock auth is enabled, use mock user
     if (isMockAuthEnabled()) {
       console.log("Using mock authentication with user:", MOCK_USER.uid)
       setUser(MOCK_USER as unknown as User)
       setIsLoading(false)
+      if (timeoutId) clearTimeout(timeoutId);
       return () => {}
     }
 
-    // Otherwise use real Firebase auth
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
-      setIsLoading(false)
-    })
+    try {
+      // Otherwise use real Firebase auth
+      console.log("Setting up Firebase auth state listener");
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        console.log("Firebase auth state changed:", user ? `User: ${user.uid}` : "No user");
+        setUser(user);
+        setIsLoading(false);
+        if (timeoutId) clearTimeout(timeoutId);
+      }, (error) => {
+        // Handle auth state observer errors
+        console.error("Firebase auth state observer error:", error);
+        setIsLoading(false);
+        if (timeoutId) clearTimeout(timeoutId);
+      });
 
-    return () => unsubscribe()
-  }, [])
+      return () => {
+        unsubscribe();
+        if (timeoutId) clearTimeout(timeoutId);
+      };
+    } catch (error) {
+      // Handle setup errors
+      console.error("Error setting up Firebase auth:", error);
+      setIsLoading(false);
+      if (timeoutId) clearTimeout(timeoutId);
+      return () => {};
+    }
+  }, []);
 
   const signInWithGoogle = async () => {
     try {
@@ -68,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (isMockAuthEnabled()) {
         console.log("Mock Google sign in successful")
         setUser(MOCK_USER as unknown as User)
-        navigateTo("/dashboard")
+        navigateTo("/dashboard", router)
         return
       }
 
@@ -111,8 +141,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log("Redirecting to dashboard...")
 
-      // Using our reliable navigation utility
-      navigateTo("/dashboard")
+      // Using our updated navigation utility with router
+      navigateTo("/dashboard", router)
     } catch (error: any) {
       if (error.code === "auth/popup-closed-by-user") {
         console.error("Google sign-in was canceled by the user.")
@@ -135,7 +165,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (isMockAuthEnabled()) {
         console.log("Mock email sign in successful")
         setUser(MOCK_USER as unknown as User)
-        navigateTo("/dashboard")
+        // Use both router and direct location for maximum reliability
+        navigateTo("/dashboard", router)
         return
       }
 
@@ -154,10 +185,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Firestore operation failed during email login, but authentication succeeded:", firestoreError)
       }
 
-      console.log("Redirecting to dashboard...")
-
-      // Using our reliable navigation utility
-      navigateTo("/dashboard")
+      console.log("Authentication successful, redirecting to dashboard...")
+      // Use consistent navigation approach
+      navigateTo("/dashboard", router)
+      return result.user
     } catch (error) {
       console.error("Error signing in with email:", error)
       throw error
@@ -172,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (isMockAuthEnabled()) {
         console.log("Mock email sign up successful")
         setUser(MOCK_USER as unknown as User)
-        navigateTo("/dashboard")
+        navigateTo("/dashboard", router)
         return
       }
 
@@ -209,8 +240,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log("Redirecting to dashboard...")
 
-      // Using our reliable navigation utility
-      navigateTo("/dashboard")
+      // Using our improved navigation utility with router
+      navigateTo("/dashboard", router)
     } catch (error: any) {
       if (error.code === "auth/email-already-in-use") {
         console.error("Error: Email already in use.")

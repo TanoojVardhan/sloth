@@ -4,15 +4,15 @@ import { SlothLogo } from "@/components/sloth-logo"
 export function SiteFooter() {
   const currentYear = new Date().getFullYear()
   return (
-    <footer className="w-full border-t border-primary/10 bg-white/90 backdrop-blur-sm py-6">
-      <div className="container px-4 md:px-6">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+    <footer className="bg-muted py-6 mt-10">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <SlothLogo size="sm" />
               <span className="text-xl font-bold text-primary">Sloth Planner</span>
             </div>
-            <p className="text-sm text-foreground/70">
+            <p className="text-sm text-muted-foreground">
               AI-powered planning assistant that helps you manage tasks, schedule, and goals efficiently. Always free.
             </p>
           </div>
@@ -20,27 +20,27 @@ export function SiteFooter() {
             <h3 className="mb-4 text-sm font-semibold text-primary">Resources</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/docs/documentation" className="text-foreground/70 hover:text-foreground">
+                <Link href="/docs/documentation" className="text-muted-foreground hover:text-foreground">
                   Documentation
                 </Link>
               </li>
               <li>
-                <Link href="/docs/guides" className="text-foreground/70 hover:text-foreground">
+                <Link href="/docs/guides" className="text-muted-foreground hover:text-foreground">
                   User Guides
                 </Link>
               </li>
               <li>
-                <Link href="/docs/tutorials" className="text-foreground/70 hover:text-foreground">
+                <Link href="/docs/tutorials" className="text-muted-foreground hover:text-foreground">
                   Tutorials
                 </Link>
               </li>
               <li>
-                <Link href="/docs/faq" className="text-foreground/70 hover:text-foreground">
+                <Link href="/docs/faq" className="text-muted-foreground hover:text-foreground">
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link href="/docs/api" className="text-foreground/70 hover:text-foreground">
+                <Link href="/docs/api" className="text-muted-foreground hover:text-foreground">
                   API Documentation
                 </Link>
               </li>
@@ -50,47 +50,48 @@ export function SiteFooter() {
             <h3 className="mb-4 text-sm font-semibold text-primary">Company</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/about" className="text-foreground/70 hover:text-foreground">
+                <Link href="/about" className="text-muted-foreground hover:text-foreground">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/mission" className="text-foreground/70 hover:text-foreground">
+                <Link href="/mission" className="text-muted-foreground hover:text-foreground">
                   Our Mission
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="text-foreground/70 hover:text-foreground">
+                <Link href="/blog" className="text-muted-foreground hover:text-foreground">
                   Blog
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-foreground/70 hover:text-foreground">
+                <Link href="/contact" className="text-muted-foreground hover:text-foreground">
                   Contact
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-foreground/70 hover:text-foreground">
+                <Link href="/privacy" className="text-muted-foreground hover:text-foreground">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-foreground/70 hover:text-foreground">
+                <Link href="/terms" className="text-muted-foreground hover:text-foreground">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/support" className="text-foreground/70 hover:text-foreground">
+                <Link href="/support" className="text-muted-foreground hover:text-foreground">
                   Support
                 </Link>
               </li>
             </ul>
           </div>
         </div>
-        <div className="mt-8 flex flex-col items-center justify-between border-t border-primary/10 pt-8 md:flex-row">
-          <p className="mb-4 text-sm text-foreground/60 md:mb-0">© {currentYear} Sloth Planner. All rights reserved.</p>
-          <div className="flex space-x-6">
-            <Link href="https://twitter.com/slothplanner" className="text-foreground/60 hover:text-foreground">
+        
+        <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
+          <p>&copy; {currentYear} Sloth Planner. All rights reserved.</p>
+          <div className="flex space-x-6 mt-4 md:mt-0">
+            <Link href="https://twitter.com/slothplanner" className="text-muted-foreground hover:text-foreground">
               <span className="sr-only">Twitter</span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -107,7 +108,7 @@ export function SiteFooter() {
                 <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
               </svg>
             </Link>
-            <Link href="https://github.com/slothplanner" className="text-foreground/60 hover:text-foreground">
+            <Link href="https://github.com/slothplanner" className="text-muted-foreground hover:text-foreground">
               <span className="sr-only">GitHub</span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -125,7 +126,7 @@ export function SiteFooter() {
                 <path d="M9 18c-4.51 2-5-2-7-2" />
               </svg>
             </Link>
-            <Link href="https://linkedin.com/company/slothplanner" className="text-foreground/60 hover:text-foreground">
+            <Link href="https://linkedin.com/company/slothplanner" className="text-muted-foreground hover:text-foreground">
               <span className="sr-only">LinkedIn</span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"

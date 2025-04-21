@@ -9,7 +9,7 @@ import admin from "./firebase-admin" // Import our firebase-admin module
 
 export const authOptions: NextAuthOptions = {
   adapter: FirestoreAdapter({
-    credential: admin.credential,
+    credential: admin.credential.applicationDefault(),
   }),
   session: {
     strategy: "jwt",

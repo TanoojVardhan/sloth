@@ -1,29 +1,37 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname } = request.nextUrl;
+  
+  // For Firebase Auth, we need to check for the Firebase auth cookie
+  // or session cookie instead of using Next Auth's getToken
+  const authCookie = request.cookies.get('firebase-auth-token')?.value;
+  
+  // For development/testing, also check for a mock auth cookie
+  const mockAuthEnabled = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true";
+  const mockAuthCookie = request.cookies.get('mock-auth-token')?.value;
+  
+  // Check if the user is authenticated with either real or mock auth
+  const isAuthenticated = !!authCookie || (mockAuthEnabled && !!mockAuthCookie);
 
-  // Always redirect from login or root path to dashboard for now
-  if (pathname === '/login' || pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // If already authenticated and trying to access login/signup, redirect to dashboard
+  if (isAuthenticated && (pathname === "/login" || pathname === "/signup")) {
+    // For debugging
+    console.log("Middleware: Authenticated user accessing login/signup, redirecting to dashboard");
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   // Allow all other requests
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
+// Only run middleware on specific paths
 export const config = {
-  /*
-   * Match all request paths except for the ones starting with:
-   * - api (API routes)
-   * - _next/static (static files)
-   * - _next/image (image optimization files)
-   * - favicon.ico (favicon file)
-   * - public assets (like images in /public)
-   */
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-    '/', // Explicitly include the root path
+    "/dashboard/:path*",
+    "/admin/:path*",
+    "/login",
+    "/signup",
   ],
-}
+};

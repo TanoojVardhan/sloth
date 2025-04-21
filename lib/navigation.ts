@@ -3,33 +3,35 @@
  */
 
 /**
- * Navigate to a path using the most reliable method available
- * This bypasses Next.js router for critical navigation paths
+ * Navigate to a path using Next.js router with fallbacks
+ * @param path The path to navigate to
+ * @param router Optional Next.js router instance (if available)
  */
-export function navigateTo(path: string): void {
+export function navigateTo(path: string, router?: any): void {
   console.log(`Navigating to: ${path}`);
   
-  // Try several methods for maximum reliability
+  // Try Next.js router first if provided
+  if (router) {
+    try {
+      router.push(path);
+      return;
+    } catch (e) {
+      console.error("Failed to navigate with Next.js router, trying alternatives", e);
+    }
+  }
+  
+  // Fallback methods if router fails or isn't available
   try {
-    // Method 1: Direct location.replace - most reliable
-    window.location.replace(path);
+    // Method 1: window.location with replace
+    window.location.href = path;
   } catch (e) {
-    console.error("Failed to navigate with location.replace, trying alternatives", e);
+    console.error("Failed to navigate with location.href, trying alternatives", e);
     
     try {
-      // Method 2: Location href
-      window.location.href = path;
+      // Method 2: Use location.replace as fallback
+      window.location.replace(path);
     } catch (e2) {
-      console.error("Failed to navigate with location.href, trying alternatives", e2);
-      
-      try {
-        // Method 3: Use script injection as fallback
-        const script = document.createElement('script');
-        script.innerHTML = `window.location = '${path}';`;
-        document.body.appendChild(script);
-      } catch (e3) {
-        console.error("All navigation methods failed", e3);
-      }
+      console.error("All navigation methods failed", e2);
     }
   }
 }

@@ -64,12 +64,15 @@
     --input: 20 25% 30%;
     --ring: 32 25% 70%;
   }
-}
 
-@layer base {
+  /* Add smooth theme transition */
   * {
     @apply border-border;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
   }
+
   body {
     @apply bg-background text-foreground;
   }

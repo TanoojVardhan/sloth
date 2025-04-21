@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { SlothLogo } from '@/components/sloth-logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export function MainHeader() {
   const { user, logout } = useAuth()
   
   return (
-    <header className="bg-white shadow-sm">
+    <header className="bg-card shadow-sm">
       <nav className="container mx-auto flex justify-between items-center p-4">
         <Link href="/" className="flex items-center gap-2">
           <SlothLogo className="h-8 w-8" />
@@ -30,7 +31,7 @@ export function MainHeader() {
               </Link>
               <button 
                 onClick={logout} 
-                className="font-medium text-red-600 hover:underline"
+                className="font-medium text-destructive hover:underline"
               >
                 Logout
               </button>
@@ -45,11 +46,15 @@ export function MainHeader() {
               <Link href="/login" className="font-medium text-primary hover:underline">
                 Login
               </Link>
-              <Link href="/signup" className="ml-2 bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90">
+              <Link href="/signup" className="ml-2 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90">
                 Sign Up
               </Link>
             </>
           )}
+          
+          <div className="ml-2 border-l pl-4">
+            <ThemeToggle />
+          </div>
         </div>
       </nav>
     </header>

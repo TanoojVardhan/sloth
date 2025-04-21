@@ -19,7 +19,9 @@ import { useToast } from "@/hooks/use-toast"
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean().refine((val) => typeof val === "boolean", {
+    message: "Remember me must be a boolean",
+  }),
 });
 
 // Type for our form data
@@ -48,7 +50,12 @@ export function LoginForm() {
     try {
       await signInWithEmail(values.email, values.password)
       toast({ title: 'Signed in', description: 'Welcome back!' })
+      // Force immediate navigation to dashboard after login
       router.push('/dashboard')
+      // Add fallback navigation in case router.push doesn't work immediately
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 1000)
     } catch (error: any) {
       toast({ title: 'Error', description: error.message || 'Failed to sign in', variant: 'destructive' })
     } finally {
@@ -61,7 +68,12 @@ export function LoginForm() {
     try {
       await signInWithGoogle()
       toast({ title: 'Signed in', description: 'Welcome back via Google!' })
+      // Force immediate navigation to dashboard after Google login
       router.push('/dashboard')
+      // Add fallback navigation in case router.push doesn't work immediately
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 1000)
     } catch (error: any) {
       toast({ title: 'Error', description: error.message || 'Google sign-in failed', variant: 'destructive' })
     } finally {
