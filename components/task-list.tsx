@@ -23,51 +23,72 @@ import {
   deleteTask,
   toggleTaskCompletion,
   createTask,
+  updateTask,
+  getTaskStats,
   type Task,
   type TaskFormData,
 } from "@/lib/services/task-service"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 
+interface TaskStats {
+  total: number
+  completed: number
+  pending: number
+  overdue: number
+}
+
 export default function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([])
+  const [stats, setStats] = useState<TaskStats>({ total: 0, completed: 0, pending: 0, overdue: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [isAddingTask, setIsAddingTask] = useState(false)
   const { isOpen, openTaskDialog, closeTaskDialog, taskToEdit, setTaskToEdit } = useTaskDialog()
   const { startListening } = useAIAssistant()
   const { toast } = useToast()
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
 
-  // Fetch tasks on component mount
   useEffect(() => {
-    const fetchTasks = async () => {
-      if (!user) return
-
-      try {
-        const fetchedTasks = await getTasks(user.uid)
-        setTasks(fetchedTasks)
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to load tasks. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
+    if (!authLoading && user) {
+      const fetchData = async () => {
+        setIsLoading(true)
+        try {
+          const [fetchedTasks, fetchedStats] = await Promise.all([getTasks(user.uid), getTaskStats(user.uid)])
+          setTasks(fetchedTasks)
+          setStats(fetchedStats)
+        } catch (error) {
+          console.error("Error fetching tasks or stats:", error)
+          toast({
+            title: "Error",
+            description: "Failed to load tasks or stats. Please try again.",
+            variant: "destructive",
+          })
+        } finally {
+          setIsLoading(false)
+        }
       }
-    }
-
-    if (user) {
-      fetchTasks()
-    } else {
+      fetchData()
+    } else if (!authLoading && !user) {
+      setTasks([])
+      setStats({ total: 0, completed: 0, pending: 0, overdue: 0 })
       setIsLoading(false)
     }
-  }, [user, toast])
+  }, [user, authLoading, toast])
+
+  const refreshStats = async () => {
+    if (!user) return
+    try {
+      const fetchedStats = await getTaskStats(user.uid)
+      setStats(fetchedStats)
+    } catch (error) {
+      console.error("Error refreshing stats:", error)
+    }
+  }
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim() || !user) {
-      console.warn("Task title is empty or user is not authenticated.", { newTaskTitle, user }) // Add warning
+      console.warn("Task title is empty or user is not authenticated.", { newTaskTitle, user })
       return
     }
     setIsAddingTask(true)
@@ -77,16 +98,17 @@ export default function TaskList() {
         completed: false,
         priority: "medium",
       }
-      console.log("Adding task with data:", taskData) // Add logging
+      console.log("Adding task with data:", taskData)
       const newTask = await createTask(taskData, user.uid)
-      setTasks([...tasks, newTask])
+      setTasks((prevTasks) => [...prevTasks, newTask])
       setNewTaskTitle("")
+      await refreshStats()
       toast({
         title: "Task added",
         description: "Your task has been added successfully.",
       })
     } catch (error) {
-      console.error("Error adding task:", error) // Log the error
+      console.error("Error adding task:", error)
       toast({
         title: "Error",
         description: "Failed to add task. Please try again.",
@@ -100,10 +122,18 @@ export default function TaskList() {
   const handleToggleTaskCompletion = async (taskId: string) => {
     if (!user) return
 
+    const originalTasks = tasks
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => (task.id === taskId ? { ...task, completed: !task.completed } : task))
+    )
+    await refreshStats()
+
     try {
-      const updatedTask = await toggleTaskCompletion(taskId, user.uid)
-      setTasks(tasks.map((task) => (task.id === taskId ? updatedTask : task)))
+      await toggleTaskCompletion(taskId, user.uid)
+      await refreshStats()
     } catch (error) {
+      setTasks(originalTasks)
+      await refreshStats()
       toast({
         title: "Error",
         description: "Failed to update task. Please try again.",
@@ -115,14 +145,20 @@ export default function TaskList() {
   const handleDeleteTask = async (taskId: string) => {
     if (!user) return
 
+    const originalTasks = tasks
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId))
+    await refreshStats()
+
     try {
       await deleteTask(taskId, user.uid)
-      setTasks(tasks.filter((task) => task.id !== taskId))
+      await refreshStats()
       toast({
         title: "Task deleted",
         description: "Your task has been deleted successfully.",
       })
     } catch (error) {
+      setTasks(originalTasks)
+      await refreshStats()
       toast({
         title: "Error",
         description: "Failed to delete task. Please try again.",
@@ -136,15 +172,56 @@ export default function TaskList() {
     openTaskDialog()
   }
 
-  const handleSaveTask = (updatedTask: Task) => {
-    if (taskToEdit) {
-      // Update existing task
-      setTasks(tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)))
-    } else {
-      // Add new task
-      setTasks([...tasks, updatedTask])
+  const handleSaveTask = async (updatedTaskData: TaskFormData, taskId?: string) => {
+    if (!user) return
+
+    const isNewTask = !taskId
+    const originalTasks = tasks
+
+    if (!isNewTask) {
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                ...updatedTaskData,
+                dueDate: updatedTaskData.dueDate
+                  ? new Date(updatedTaskData.dueDate).toISOString().split("T")[0]
+                  : undefined,
+              }
+            : task
+        )
+      )
     }
-    closeTaskDialog()
+    await refreshStats()
+
+    try {
+      let savedTask: Task
+      if (isNewTask) {
+        savedTask = await createTask(updatedTaskData, user.uid)
+        setTasks((prevTasks) => [...prevTasks, savedTask])
+      } else {
+        savedTask = await updateTask(taskId!, updatedTaskData, user.uid)
+        setTasks((prevTasks) =>
+          prevTasks.map((task) => (task.id === savedTask.id ? savedTask : task))
+        )
+      }
+      await refreshStats()
+      closeTaskDialog()
+      toast({
+        title: isNewTask ? "Task created" : "Task updated",
+        description: `Your task has been ${isNewTask ? "created" : "updated"} successfully.`,
+      })
+    } catch (error) {
+      console.error("Error saving task:", error)
+      setTasks(originalTasks)
+      await refreshStats()
+      toast({
+        title: "Error",
+        description: "Failed to save task. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const getPriorityColor = (priority: Task["priority"]) => {
@@ -176,7 +253,14 @@ export default function TaskList() {
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Tasks</CardTitle>
+          <div className="flex flex-col">
+            <CardTitle>Tasks</CardTitle>
+            {!isLoading && stats.pending > 0 && (
+              <p className="text-sm text-foreground/60 mt-1">
+                {stats.pending} pending task{stats.pending !== 1 ? "s" : ""}
+              </p>
+            )}
+          </div>
           <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => openTaskDialog()}>
             <Plus className="h-4 w-4 mr-1" /> Add Task
           </Button>
@@ -213,6 +297,10 @@ export default function TaskList() {
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-foreground/40" />
               </div>
+            ) : !user ? (
+              <div className="text-center py-8">
+                <p className="text-foreground/60 mb-4">Please log in to manage your tasks.</p>
+              </div>
             ) : tasks.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-foreground/60 mb-4">You don't have any tasks yet.</p>
@@ -228,7 +316,7 @@ export default function TaskList() {
                     className={cn(
                       "flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-accent/50",
                       task.completed ? "bg-accent/30 border-accent/30" : "bg-white",
-                      isOverdue(task.dueDate) && !task.completed && "border-red-200 bg-red-50/30",
+                      isOverdue(task.dueDate) && !task.completed && "border-red-200 bg-red-50/30"
                     )}
                   >
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -243,7 +331,7 @@ export default function TaskList() {
                           htmlFor={`task-${task.id}`}
                           className={cn(
                             "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer",
-                            task.completed && "line-through text-foreground/40",
+                            task.completed && "line-through text-foreground/40"
                           )}
                         >
                           {task.title}
@@ -265,7 +353,7 @@ export default function TaskList() {
                         <div
                           className={cn(
                             "flex items-center text-xs",
-                            isOverdue(task.dueDate) && !task.completed ? "text-red-500" : "text-foreground/60",
+                            isOverdue(task.dueDate) && !task.completed ? "text-red-500" : "text-foreground/60"
                           )}
                         >
                           {isOverdue(task.dueDate) && !task.completed ? (
@@ -306,7 +394,14 @@ export default function TaskList() {
         </CardContent>
       </Card>
 
-      <TaskDialog open={isOpen} onOpenChange={closeTaskDialog} task={taskToEdit} onSave={handleSaveTask} />
+      <TaskDialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) closeTaskDialog()
+        }}
+        task={taskToEdit}
+        onSave={(data) => handleSaveTask(data, taskToEdit?.id)}
+      />
     </>
   )
 }

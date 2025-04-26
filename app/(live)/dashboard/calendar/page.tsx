@@ -21,7 +21,6 @@ export default function CalendarPage() {
             <CalendarInterface />
           </DashboardShell>
         </div>
-        <SiteFooter />
       </div>
     
   )

@@ -12,19 +12,21 @@ import {
   orderBy,
   serverTimestamp,
   Timestamp,
+  limit,
+  startAfter,
+  type DocumentSnapshot,
 } from "firebase/firestore"
 
 export interface Goal {
   id: string
   title: string
   description?: string
-  progress: number
-  target: number
-  unit: string
-  category: "personal" | "work" | "health" | string
-  startDate?: string
-  endDate?: string
+  targetAmount?: number
+  currentAmount?: number
   completed: boolean
+  dueDate?: string
+  category?: string
+  tags?: string[]
   createdAt: Date
   updatedAt: Date
 }
@@ -32,41 +34,103 @@ export interface Goal {
 export interface GoalFormData {
   title: string
   description?: string
-  progress?: number
-  target: number
-  unit: string
-  category: "personal" | "work" | "health" | string
-  startDate?: string
-  endDate?: string
+  targetAmount?: number
+  currentAmount?: number
   completed?: boolean
+  dueDate?: string
+  category?: string
+  tags?: string[]
 }
 
-export async function getGoals(userId: string): Promise<Goal[]> {
-  try {
-    const goalsRef = collection(db, "goals")
-    const q = query(goalsRef, where("userId", "==", userId), orderBy("createdAt", "desc"))
-    const querySnapshot = await getDocs(q)
+export interface GoalsQueryOptions {
+  completed?: boolean
+  category?: string
+  tag?: string
+  dueBefore?: Date
+  dueAfter?: Date
+  limit?: number
+  startAfter?: DocumentSnapshot
+  orderByField?: "dueDate" | "category" | "createdAt" | "updatedAt"
+  orderDirection?: "asc" | "desc"
+}
 
+export async function getGoals(userId: string, options: GoalsQueryOptions = {}): Promise<Goal[]> {
+  console.log("getGoals: Starting with userId", userId, "and options:", options);
+  try {
+    const goalsRef = collection(db, "goals");
+    console.log("getGoals: Created collection reference for 'goals'");
+    
+    let q = query(goalsRef, where("userId", "==", userId));
+    console.log("getGoals: Applied userId filter");
+
+    // Apply filters
+    if (options.completed !== undefined) {
+      q = query(q, where("completed", "==", options.completed));
+      console.log("getGoals: Applied completed filter:", options.completed);
+    }
+    
+    if (options.category) {
+      q = query(q, where("category", "==", options.category));
+      console.log("getGoals: Applied category filter:", options.category);
+    }
+    
+    if (options.tag) {
+      q = query(q, where("tags", "array-contains", options.tag));
+      console.log("getGoals: Applied tag filter:", options.tag);
+    }
+    
+    if (options.dueBefore) {
+      const dueBefore = Timestamp.fromDate(options.dueBefore);
+      q = query(q, where("dueDate", "<=", dueBefore));
+      console.log("getGoals: Applied dueBefore filter");
+    }
+    
+    if (options.dueAfter) {
+      const dueAfter = Timestamp.fromDate(options.dueAfter);
+      q = query(q, where("dueDate", ">=", dueAfter));
+      console.log("getGoals: Applied dueAfter filter");
+    }
+
+    // Apply ordering
+    const orderByField = options.orderByField || "createdAt";
+    const orderDirection = options.orderDirection || "desc";
+    q = query(q, orderBy(orderByField, orderDirection));
+    console.log(`getGoals: Applied ordering by ${orderByField} ${orderDirection}`);
+
+    // Apply pagination
+    if (options.limit) {
+      q = query(q, limit(options.limit));
+      console.log("getGoals: Applied limit:", options.limit);
+    }
+    
+    if (options.startAfter) {
+      q = query(q, startAfter(options.startAfter));
+      console.log("getGoals: Applied startAfter pagination");
+    }
+
+    console.log("getGoals: Executing query...");
+    const querySnapshot = await getDocs(q);
+    console.log(`getGoals: Query returned ${querySnapshot.size} documents`);
+    
     return querySnapshot.docs.map((doc) => {
-      const data = doc.data()
+      const data = doc.data();
       return {
         id: doc.id,
-        title: data.title,
-        description: data.description,
-        progress: data.progress,
-        target: data.target,
-        unit: data.unit,
-        category: data.category,
-        startDate: data.startDate ? data.startDate.toDate().toISOString().split("T")[0] : undefined,
-        endDate: data.endDate ? data.endDate.toDate().toISOString().split("T")[0] : undefined,
-        completed: data.completed,
-        createdAt: data.createdAt.toDate(),
-        updatedAt: data.updatedAt.toDate(),
-      }
-    })
+        title: data.title || "",
+        description: data.description || undefined,
+        targetAmount: data.targetAmount || undefined,
+        currentAmount: data.currentAmount || 0,
+        completed: data.completed || false,
+        dueDate: data.dueDate ? data.dueDate.toDate().toISOString().split("T")[0] : undefined,
+        category: data.category || undefined,
+        tags: data.tags || [],
+        createdAt: data.createdAt ? data.createdAt.toDate() : new Date(),
+        updatedAt: data.updatedAt ? data.updatedAt.toDate() : new Date(),
+      };
+    });
   } catch (error) {
-    console.error("Error fetching goals:", error)
-    return []
+    console.error("Error fetching goals:", error);
+    return [];
   }
 }
 
@@ -74,29 +138,27 @@ export async function getGoalById(goalId: string, userId: string): Promise<Goal 
   try {
     const goalRef = doc(db, "goals", goalId)
     const goalSnap = await getDoc(goalRef)
-
+    
     if (!goalSnap.exists()) {
       return null
     }
-
+    
     const data = goalSnap.data()
-
     // Verify that the goal belongs to the user
     if (data.userId !== userId) {
       return null
     }
-
+    
     return {
       id: goalSnap.id,
       title: data.title,
       description: data.description,
-      progress: data.progress,
-      target: data.target,
-      unit: data.unit,
-      category: data.category,
-      startDate: data.startDate ? data.startDate.toDate().toISOString().split("T")[0] : undefined,
-      endDate: data.endDate ? data.endDate.toDate().toISOString().split("T")[0] : undefined,
+      targetAmount: data.targetAmount,
+      currentAmount: data.currentAmount,
       completed: data.completed,
+      dueDate: data.dueDate ? data.dueDate.toDate().toISOString().split("T")[0] : undefined,
+      category: data.category,
+      tags: data.tags || [],
       createdAt: data.createdAt.toDate(),
       updatedAt: data.updatedAt.toDate(),
     }
@@ -108,38 +170,54 @@ export async function getGoalById(goalId: string, userId: string): Promise<Goal 
 
 export async function createGoal(goalData: GoalFormData, userId: string): Promise<Goal> {
   try {
-    const goalRef = collection(db, "goals")
-
-    const now = serverTimestamp()
+    if (!userId) {
+      throw new Error("User ID is required to create a goal")
+    }
+    
+    const goalsRef = collection(db, "goals")
+    
+    // Handle date conversion safely
+    let dueDate = null
+    if (goalData.dueDate) {
+      try {
+        const parsedDate = new Date(goalData.dueDate)
+        if (!isNaN(parsedDate.getTime())) {
+          dueDate = Timestamp.fromDate(parsedDate)
+        }
+      } catch (dateError) {
+        console.error("Error parsing date:", dateError)
+      }
+    }
+    
+    // Create the goal object for Firestore
     const goalToAdd = {
       title: goalData.title,
       description: goalData.description || null,
-      progress: goalData.progress || 0,
-      target: goalData.target,
-      unit: goalData.unit,
-      category: goalData.category,
-      startDate: goalData.startDate ? Timestamp.fromDate(new Date(goalData.startDate)) : null,
-      endDate: goalData.endDate ? Timestamp.fromDate(new Date(goalData.endDate)) : null,
+      targetAmount: goalData.targetAmount || null,
+      currentAmount: goalData.currentAmount || 0,
       completed: goalData.completed || false,
+      dueDate: dueDate,
+      category: goalData.category || null,
+      tags: goalData.tags || [],
       userId,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     }
-
-    const docRef = await addDoc(goalRef, goalToAdd)
+    
+    const docRef = await addDoc(goalsRef, goalToAdd)
     const createdAt = new Date()
-
+    
+    // Return the created goal object
     return {
       id: docRef.id,
       title: goalData.title,
       description: goalData.description,
-      progress: goalData.progress || 0,
-      target: goalData.target,
-      unit: goalData.unit,
-      category: goalData.category,
-      startDate: goalData.startDate,
-      endDate: goalData.endDate,
+      targetAmount: goalData.targetAmount,
+      currentAmount: goalData.currentAmount || 0,
       completed: goalData.completed || false,
+      dueDate: goalData.dueDate,
+      category: goalData.category,
+      tags: goalData.tags || [],
       createdAt,
       updatedAt: createdAt,
     }
@@ -149,69 +227,48 @@ export async function createGoal(goalData: GoalFormData, userId: string): Promis
   }
 }
 
-export async function updateGoal(goalId: string, goalData: Partial<GoalFormData>, userId: string): Promise<Goal> {
+export async function updateGoal(goalId: string, goalData: GoalFormData, userId: string): Promise<Goal> {
   try {
     const goalRef = doc(db, "goals", goalId)
     const goalSnap = await getDoc(goalRef)
-
+    
     if (!goalSnap.exists()) {
       throw new Error("Goal not found")
     }
-
+    
     const data = goalSnap.data()
-
     // Verify that the goal belongs to the user
     if (data.userId !== userId) {
       throw new Error("Unauthorized")
     }
-
-    const goalToUpdate: any = {
+    
+    const goalToUpdate = {
+      title: goalData.title,
+      description: goalData.description || null,
+      targetAmount: goalData.targetAmount !== undefined ? goalData.targetAmount : data.targetAmount,
+      currentAmount: goalData.currentAmount !== undefined ? goalData.currentAmount : data.currentAmount,
+      completed: goalData.completed !== undefined ? goalData.completed : data.completed,
+      dueDate: goalData.dueDate ? Timestamp.fromDate(new Date(goalData.dueDate)) : data.dueDate,
+      category: goalData.category || data.category,
+      tags: goalData.tags || data.tags,
       updatedAt: serverTimestamp(),
     }
-
-    // Only update fields that are provided
-    if (goalData.title !== undefined) goalToUpdate.title = goalData.title
-    if (goalData.description !== undefined) goalToUpdate.description = goalData.description
-    if (goalData.progress !== undefined) goalToUpdate.progress = goalData.progress
-    if (goalData.target !== undefined) goalToUpdate.target = goalData.target
-    if (goalData.unit !== undefined) goalToUpdate.unit = goalData.unit
-    if (goalData.category !== undefined) goalToUpdate.category = goalData.category
-    if (goalData.startDate !== undefined) {
-      goalToUpdate.startDate = goalData.startDate ? Timestamp.fromDate(new Date(goalData.startDate)) : null
-    }
-    if (goalData.endDate !== undefined) {
-      goalToUpdate.endDate = goalData.endDate ? Timestamp.fromDate(new Date(goalData.endDate)) : null
-    }
-    if (goalData.completed !== undefined) goalToUpdate.completed = goalData.completed
-
-    // Check if progress meets target and update completed status
-    if (goalData.progress !== undefined && data.target !== undefined) {
-      if (goalData.progress >= data.target && !data.completed) {
-        goalToUpdate.completed = true
-      } else if (goalData.progress < data.target && data.completed) {
-        goalToUpdate.completed = false
-      }
-    }
-
+    
     await updateDoc(goalRef, goalToUpdate)
-
-    // Get the updated document
-    const updatedGoalSnap = await getDoc(goalRef)
-    const updatedData = updatedGoalSnap.data()
-
+    const updatedAt = new Date()
+    
     return {
       id: goalId,
-      title: updatedData.title,
-      description: updatedData.description,
-      progress: updatedData.progress,
-      target: updatedData.target,
-      unit: updatedData.unit,
-      category: updatedData.category,
-      startDate: updatedData.startDate ? updatedData.startDate.toDate().toISOString().split("T")[0] : undefined,
-      endDate: updatedData.endDate ? updatedData.endDate.toDate().toISOString().split("T")[0] : undefined,
-      completed: updatedData.completed,
-      createdAt: updatedData.createdAt.toDate(),
-      updatedAt: updatedData.updatedAt.toDate(),
+      title: goalData.title,
+      description: goalData.description || data.description,
+      targetAmount: goalData.targetAmount !== undefined ? goalData.targetAmount : data.targetAmount,
+      currentAmount: goalData.currentAmount !== undefined ? goalData.currentAmount : data.currentAmount,
+      completed: goalData.completed !== undefined ? goalData.completed : data.completed,
+      dueDate: goalData.dueDate || (data.dueDate ? data.dueDate.toDate().toISOString().split("T")[0] : undefined),
+      category: goalData.category || data.category,
+      tags: goalData.tags || data.tags || [],
+      createdAt: data.createdAt.toDate(),
+      updatedAt,
     }
   } catch (error) {
     console.error("Error updating goal:", error)
@@ -223,18 +280,17 @@ export async function deleteGoal(goalId: string, userId: string): Promise<void> 
   try {
     const goalRef = doc(db, "goals", goalId)
     const goalSnap = await getDoc(goalRef)
-
+    
     if (!goalSnap.exists()) {
       throw new Error("Goal not found")
     }
-
+    
     const data = goalSnap.data()
-
     // Verify that the goal belongs to the user
     if (data.userId !== userId) {
       throw new Error("Unauthorized")
     }
-
+    
     await deleteDoc(goalRef)
   } catch (error) {
     console.error("Error deleting goal:", error)
@@ -242,47 +298,136 @@ export async function deleteGoal(goalId: string, userId: string): Promise<void> 
   }
 }
 
-export async function updateGoalProgress(goalId: string, progress: number, userId: string): Promise<Goal> {
+export async function toggleGoalCompletion(goalId: string, userId: string): Promise<Goal> {
   try {
     const goalRef = doc(db, "goals", goalId)
     const goalSnap = await getDoc(goalRef)
-
+    
     if (!goalSnap.exists()) {
       throw new Error("Goal not found")
     }
-
+    
     const data = goalSnap.data()
-
     // Verify that the goal belongs to the user
     if (data.userId !== userId) {
       throw new Error("Unauthorized")
     }
-
-    // Check if progress meets target
-    const completed = progress >= data.target
-
+    
+    const newCompletedState = !data.completed
     await updateDoc(goalRef, {
-      progress,
-      completed,
+      completed: newCompletedState,
       updatedAt: serverTimestamp(),
     })
-
+    
     return {
       id: goalId,
       title: data.title,
       description: data.description,
-      progress,
-      target: data.target,
-      unit: data.unit,
+      targetAmount: data.targetAmount,
+      currentAmount: data.currentAmount,
+      completed: newCompletedState,
+      dueDate: data.dueDate ? data.dueDate.toDate().toISOString().split("T")[0] : undefined,
       category: data.category,
-      startDate: data.startDate ? data.startDate.toDate().toISOString().split("T")[0] : undefined,
-      endDate: data.endDate ? data.endDate.toDate().toISOString().split("T")[0] : undefined,
-      completed,
+      tags: data.tags || [],
+      createdAt: data.createdAt.toDate(),
+      updatedAt: new Date(),
+    }
+  } catch (error) {
+    console.error("Error toggling goal completion:", error)
+    throw error
+  }
+}
+
+export async function updateGoalProgress(goalId: string, amount: number, userId: string): Promise<Goal> {
+  try {
+    const goalRef = doc(db, "goals", goalId)
+    const goalSnap = await getDoc(goalRef)
+    
+    if (!goalSnap.exists()) {
+      throw new Error("Goal not found")
+    }
+    
+    const data = goalSnap.data()
+    // Verify that the goal belongs to the user
+    if (data.userId !== userId) {
+      throw new Error("Unauthorized")
+    }
+    
+    const newAmount = amount
+    const isCompleted = data.targetAmount ? newAmount >= data.targetAmount : false
+    
+    await updateDoc(goalRef, {
+      currentAmount: newAmount,
+      completed: isCompleted,
+      updatedAt: serverTimestamp(),
+    })
+    
+    return {
+      id: goalId,
+      title: data.title,
+      description: data.description,
+      targetAmount: data.targetAmount,
+      currentAmount: newAmount,
+      completed: isCompleted,
+      dueDate: data.dueDate ? data.dueDate.toDate().toISOString().split("T")[0] : undefined,
+      category: data.category,
+      tags: data.tags || [],
       createdAt: data.createdAt.toDate(),
       updatedAt: new Date(),
     }
   } catch (error) {
     console.error("Error updating goal progress:", error)
     throw error
+  }
+}
+
+export async function getGoalStats(userId: string): Promise<{
+  total: number
+  completed: number
+  inProgress: number
+  upcoming: number
+}> {
+  try {
+    const goalsRef = collection(db, "goals")
+    
+    // Get total goals
+    const totalQuery = query(goalsRef, where("userId", "==", userId))
+    const totalSnapshot = await getDocs(totalQuery)
+    const total = totalSnapshot.size
+    
+    // Get completed goals
+    const completedQuery = query(goalsRef, where("userId", "==", userId), where("completed", "==", true))
+    const completedSnapshot = await getDocs(completedQuery)
+    const completed = completedSnapshot.size
+    
+    // Get in-progress goals (has currentAmount > 0 but not completed)
+    const inProgressQuery = query(
+      goalsRef,
+      where("userId", "==", userId),
+      where("completed", "==", false),
+      where("currentAmount", ">", 0)
+    )
+    const inProgressSnapshot = await getDocs(inProgressQuery)
+    const inProgress = inProgressSnapshot.size
+    
+    // Get upcoming goals (future due date, not started)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const upcoming = total - completed - inProgress
+    
+    return {
+      total,
+      completed,
+      inProgress,
+      upcoming,
+    }
+  } catch (error) {
+    console.error("Error getting goal stats:", error)
+    return {
+      total: 0,
+      completed: 0,
+      inProgress: 0,
+      upcoming: 0,
+    }
   }
 }

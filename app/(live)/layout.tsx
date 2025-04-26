@@ -5,6 +5,7 @@ import "@/app/globals.css"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TaskDialogProvider } from "@/hooks/use-task-dialog"
+import { GoalDialogProvider } from "@/components/providers/goal-dialog-provider"
 import { AIAssistantProvider } from "@/hooks/use-ai-assistant"
 import { PersistentVoiceAssistant } from "@/components/persistent-voice-assistant"
 import { Toaster } from "@/components/ui/toaster"
@@ -34,11 +35,13 @@ export default function RootLayout({
             <UserProvider>
               <AIAssistantProvider>
                 <TaskDialogProvider>
-                  <div className="flex min-h-screen flex-col">
-                    <div className="flex-1">{children}</div>
-                  </div>
-                  <PersistentVoiceAssistant />
-                  <Toaster />
+                  <GoalDialogProvider>
+                    <div className="flex min-h-screen flex-col">
+                      <div className="flex-1">{children}</div>
+                    </div>
+                    <PersistentVoiceAssistant />
+                    <Toaster />
+                  </GoalDialogProvider>
                 </TaskDialogProvider>
               </AIAssistantProvider>
             </UserProvider>

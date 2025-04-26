@@ -23,7 +23,7 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const { openAssistant } = useAIAssistant()
+  const { open } = useAIAssistant()
   const { user } = useAuth()
   
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
@@ -107,7 +107,7 @@ export default function Calendar() {
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   
   const handleAddEvent = () => {
-    openAssistant("I'd like to add a new event to my calendar")
+    open("I'd like to add a new event to my calendar")
   }
   
   return (

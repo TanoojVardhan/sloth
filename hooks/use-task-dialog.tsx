@@ -11,6 +11,8 @@ interface Task {
   priority: "low" | "medium" | "high"
   tags?: string[]
   description?: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 interface TaskDialogContextType {
