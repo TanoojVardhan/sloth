@@ -59,19 +59,15 @@ export async function getTasks(userId: string, options: TasksQueryOptions = {}):
     if (options.completed !== undefined) {
       q = query(q, where("completed", "==", options.completed))
     }
-
     if (options.priority) {
       q = query(q, where("priority", "==", options.priority))
     }
-
     if (options.tag) {
       q = query(q, where("tags", "array-contains", options.tag))
     }
-
     if (options.dueBefore) {
       q = query(q, where("dueDate", "<=", Timestamp.fromDate(options.dueBefore)))
     }
-
     if (options.dueAfter) {
       q = query(q, where("dueDate", ">=", Timestamp.fromDate(options.dueAfter)))
     }
@@ -85,13 +81,11 @@ export async function getTasks(userId: string, options: TasksQueryOptions = {}):
     if (options.limit) {
       q = query(q, limit(options.limit))
     }
-
     if (options.startAfter) {
       q = query(q, startAfter(options.startAfter))
     }
 
     const querySnapshot = await getDocs(q)
-
     return querySnapshot.docs.map((doc) => {
       const data = doc.data()
       return {
@@ -147,13 +141,20 @@ export async function getTaskById(taskId: string, userId: string): Promise<Task 
 
 export async function createTask(taskData: TaskFormData, userId: string): Promise<Task> {
   try {
-    console.log("Creating task with data:", taskData, "for user:", userId);
-    
-    // Validate the user ID
-    if (!userId) {
-      throw new Error("User ID is required to create a task");
+    console.log("Creating task with data:", JSON.stringify(taskData), "for user:", userId);
+
+    // Enhanced validation for user authentication
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      console.error("Invalid userId provided:", userId);
+      throw new Error("Valid user ID is required to create a task");
     }
-    
+
+    // Strict validation of required fields
+    if (!taskData.title || taskData.title.trim() === '') {
+      throw new Error("Task title is required");
+    }
+
+    // Initialize task reference
     const taskRef = collection(db, "tasks");
     
     // Handle date conversion more safely
@@ -171,35 +172,73 @@ export async function createTask(taskData: TaskFormData, userId: string): Promis
         console.error("Error parsing date:", dateError);
       }
     }
-    
-    // Create the task object for Firestore
+
+    // Create a complete task object with defaults for all fields
     const taskToAdd = {
-      title: taskData.title,
-      description: taskData.description || null,
-      completed: taskData.completed || false,
+      title: taskData.title.trim(),
+      description: taskData.description || "",
+      completed: taskData.completed === true ? true : false,
       dueDate: dueDate,
       priority: taskData.priority || "medium",
-      tags: taskData.tags || [],
-      userId,
+      tags: Array.isArray(taskData.tags) ? taskData.tags : [],
+      userId: userId, // Ensure userId is explicitly set
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
+
+    console.log("Final task data being sent to Firestore:", JSON.stringify({
+      ...taskToAdd,
+      userId: `${userId.substring(0, 3)}...${userId.substring(userId.length - 3)}` // Redact full userId in logs
+    }));
     
-    console.log("Final task data being sent to Firestore:", taskToAdd);
+    // Add the document with retries for network issues
+    let attempts = 0;
+    const maxAttempts = 3;
+    let docRef;
     
-    const docRef = await addDoc(taskRef, taskToAdd);
-    console.log("Document added with ID:", docRef.id);
+    // Use a more reliable approach for adding the document
+    while (attempts < maxAttempts) {
+      try {
+        docRef = await addDoc(taskRef, taskToAdd);
+        console.log("Document added with ID:", docRef.id);
+        break; // Success, exit loop
+      } catch (addError) {
+        attempts++;
+        console.error(`Task creation attempt ${attempts} failed:`, addError);
+        
+        // Specific error handling for common issues
+        if (addError instanceof Error) {
+          if (addError.message.includes("permission-denied") || 
+              addError.message.includes("Missing or insufficient permissions")) {
+            console.error("Permission denied. User may not be properly authenticated.");
+            throw new Error("Permission denied: Make sure you're logged in and have permission to create tasks");
+          }
+          
+          if (addError.message.includes("network") && attempts < maxAttempts) {
+            // Wait before retry
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+            continue;
+          }
+        }
+        
+        throw addError; // Re-throw if it's not a network error or we've exceeded retries
+      }
+    }
+    
+    if (!docRef) {
+      throw new Error("Failed to create task after multiple attempts");
+    }
     
     const createdAt = new Date();
     
-    // Return the created task object
+    // Return a properly formatted task object
     return {
       id: docRef.id,
       title: taskData.title,
       completed: taskData.completed || false,
       dueDate: taskData.dueDate,
       priority: taskData.priority || "medium",
-      tags: taskData.tags || [],
+      tags: Array.isArray(taskData.tags) ? taskData.tags : [],
       description: taskData.description,
       createdAt,
       updatedAt: createdAt,

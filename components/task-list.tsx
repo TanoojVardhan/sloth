@@ -50,29 +50,32 @@ export default function TaskList() {
   const { user, isLoading: authLoading } = useAuth()
 
   useEffect(() => {
-    if (!authLoading && user) {
-      const fetchData = async () => {
-        setIsLoading(true)
-        try {
-          const [fetchedTasks, fetchedStats] = await Promise.all([getTasks(user.uid), getTaskStats(user.uid)])
-          setTasks(fetchedTasks)
-          setStats(fetchedStats)
-        } catch (error) {
-          console.error("Error fetching tasks or stats:", error)
-          toast({
-            title: "Error",
-            description: "Failed to load tasks or stats. Please try again.",
-            variant: "destructive",
-          })
-        } finally {
-          setIsLoading(false)
+    if (!authLoading) {
+      if (user) {
+        const fetchData = async () => {
+          setIsLoading(true)
+          try {
+            const [fetchedTasks, fetchedStats] = await Promise.all([getTasks(user.uid), getTaskStats(user.uid)])
+            setTasks(fetchedTasks)
+            setStats(fetchedStats)
+          } catch (error) {
+            console.error("Error fetching tasks or stats:", error)
+            toast({
+              title: "Error",
+              description: "Failed to load tasks or stats. Please try again.",
+              variant: "destructive",
+            })
+          } finally {
+            setIsLoading(false)
+          }
         }
+        fetchData()
+      } else {
+        console.warn("User is not authenticated. Skipping task fetching.")
+        setTasks([])
+        setStats({ total: 0, completed: 0, pending: 0, overdue: 0 })
+        setIsLoading(false)
       }
-      fetchData()
-    } else if (!authLoading && !user) {
-      setTasks([])
-      setStats({ total: 0, completed: 0, pending: 0, overdue: 0 })
-      setIsLoading(false)
     }
   }, [user, authLoading, toast])
 
