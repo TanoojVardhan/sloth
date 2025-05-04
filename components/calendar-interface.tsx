@@ -1,17 +1,17 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useCallback } from "react"
+import { Card, CardContent } from "@/components/ui/card"
 import { CalendarView } from "@/components/calendar-view"
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import UpcomingEvents from "@/components/upcoming-events"
 
 export function CalendarInterface() {
-  const currentMonth = new Date().toLocaleString("default", { month: "long" })
-  const currentYear = new Date().getFullYear()
   const [activeTab, setActiveTab] = useState("month")
+  
+  // Use useCallback to maintain consistent reference of this component
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+  }, []);
   
   return (
     <Card>

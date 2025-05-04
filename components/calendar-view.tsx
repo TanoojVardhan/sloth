@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, memo } from "react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { db } from "@/lib/firebase"
@@ -16,8 +16,9 @@ import {
 import { format, addMonths, subMonths, startOfWeek, endOfWeek, addDays, isSameDay, startOfDay, endOfDay, addDays as addDate, subDays } from "date-fns"
 import { useEventDialog } from "@/hooks/use-event-dialog"
 import { getEvents } from "@/lib/services/event-service"
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 
+// Move interfaces outside of component to prevent recreation
 interface Event {
   id: string
   title: string
@@ -31,7 +32,117 @@ interface Event {
 
 type CalendarViewType = "month" | "agenda" | "week" | "day"
 
-export function CalendarView() {
+// Create a component for the individual day cell to prevent unnecessary re-renders
+const DayCell = memo(({ 
+  day, 
+  index,
+  currentMonth, 
+  currentYear, 
+  today,
+  events,
+  currentDate,
+  setCurrentDate,
+  setViewType
+}) => {
+  const dayEvents = events.filter((event) => event.date === day);
+  const isCurrentDay = 
+    day === today.getDate() && 
+    currentMonth === today.getMonth() && 
+    currentYear === today.getFullYear();
+  
+  const isSelectedDay = day === currentDate.getDate() &&
+    currentMonth === currentDate.getMonth() &&
+    currentYear === currentDate.getFullYear();
+
+  const dateKey = `${day}-${currentMonth}-${currentYear}`;
+  const cellLayoutId = `cell-${dateKey}`;
+  const dateCircleLayoutId = `date-circle-${isSelectedDay ? 'selected' : isCurrentDay ? 'current' : dateKey}`;
+
+  const handleClick = useCallback(() => {
+    setCurrentDate(new Date(currentYear, currentMonth, day));
+    setViewType("day");
+  }, [currentYear, currentMonth, day, setCurrentDate, setViewType]);
+
+  return (
+    <motion.div
+      layoutId={cellLayoutId}
+      initial={{ scale: 0.98, opacity: 0.5 }}
+      animate={{ 
+        scale: 1, 
+        opacity: 1,
+        backgroundColor: isSelectedDay ? "rgb(30 41 59)" : "transparent",
+        color: isSelectedDay ? "white" : "inherit",
+        transition: { 
+          duration: 0.2,
+          backgroundColor: { duration: 0.3 }
+        }
+      }}
+      className={cn(
+        "h-24 border border-slate-200 rounded-md p-1 overflow-hidden cursor-pointer hover:bg-slate-50",
+        isCurrentDay && !isSelectedDay && "bg-slate-50 border-slate-300",
+      )}
+      onClick={handleClick}
+    >
+      <div className="relative">
+        <motion.div
+          layoutId={dateCircleLayoutId}
+          className={cn(
+            "text-right text-sm p-1",
+            (isCurrentDay || isSelectedDay) &&
+              "font-bold rounded-full w-6 h-6 flex items-center justify-center ml-auto"
+          )}
+          animate={{
+            backgroundColor: isSelectedDay ? "rgb(30 41 59)" : isCurrentDay ? "rgb(30 41 59)" : "transparent",
+            color: (isCurrentDay || isSelectedDay) ? "white" : "inherit",
+            transition: { duration: 0.3 }
+          }}
+        >
+          {day}
+        </motion.div>
+      </div>
+      <motion.div layout className="space-y-1 mt-1">
+        {dayEvents.slice(0, 3).map((event, i) => (
+          <motion.div
+            key={i}
+            layout
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ 
+              opacity: 1, 
+              y: 0,
+              transition: { 
+                delay: i * 0.05 + 0.1
+              }
+            }}
+            className={cn(
+              "text-xs truncate px-1 py-0.5 rounded",
+              event.color.replace("bg-", "bg-opacity-15 text-").replace("-500", "-800"),
+            )}
+          >
+            <div className="flex items-center">
+              <div className={cn("w-1.5 h-1.5 rounded-full mr-1", event.color)}></div>
+              <span>
+                {event.time} {event.title}
+              </span>
+            </div>
+          </motion.div>
+        ))}
+        {dayEvents.length > 3 && (
+          <motion.div 
+            layout
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-xs text-slate-500 pl-1"
+          >
+            +{dayEvents.length - 3} more
+          </motion.div>
+        )}
+      </motion.div>
+    </motion.div>
+  )
+});
+
+// Use memo to prevent unnecessary re-renders of the entire CalendarView
+export const CalendarView = memo(function CalendarView() {
   const [events, setEvents] = useState<Event[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [viewType, setViewType] = useState<CalendarViewType>("month")
@@ -56,12 +167,33 @@ export function CalendarView() {
     currentDate.getFullYear() === today.getFullYear()
   )
   
-  // Navigation functions
-  const goToNextMonth = () => setCurrentDate(addMonths(currentDate, 1))
-  const goToPreviousMonth = () => setCurrentDate(subMonths(currentDate, 1))
-  const goToToday = () => setCurrentDate(new Date())
-  const goToNextDay = () => setCurrentDate(addDate(currentDate, 1))
-  const goToPreviousDay = () => setCurrentDate(subDays(currentDate, 1))
+  // Navigation functions - memoize to prevent recreation on each render
+  const goToNextMonth = useCallback(() => {
+    setCurrentDate(prevDate => addMonths(prevDate, 1));
+  }, []);
+  
+  const goToPreviousMonth = useCallback(() => {
+    setCurrentDate(prevDate => subMonths(prevDate, 1));
+  }, []);
+  
+  const goToToday = useCallback(() => {
+    setCurrentDate(new Date());
+  }, []);
+  
+  const goToNextDay = useCallback(() => {
+    setCurrentDate(prevDate => addDate(prevDate, 1));
+  }, []);
+  
+  const goToPreviousDay = useCallback(() => {
+    setCurrentDate(prevDate => subDays(prevDate, 1));
+  }, []);
+  
+  // Memoize helper functions
+  const getEventsForDay = useCallback((day: number) => 
+    events.filter((event) => event.date === day), [events]);
+  
+  const getEventsForDate = useCallback((date: Date) => 
+    events.filter((event) => isSameDay(event.startDate, date)), [events]);
   
   // Fetch events from Firestore using our service
   useEffect(() => {
@@ -154,21 +286,11 @@ export function CalendarView() {
     return colorMap[colorHex] || "bg-blue-500";
   }
 
-  // Helper function to get a random event color
-  const getRandomEventColor = () => {
-    const colors = ["bg-blue-500", "bg-purple-500", "bg-red-500", "bg-green-500", "bg-yellow-500"]
-    return colors[Math.floor(Math.random() * colors.length)]
-  }
-
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
   
-  // Event helper functions
-  const getEventsForDay = (day: number) => events.filter((event) => event.date === day)
-  const getEventsForDate = (date: Date) => events.filter((event) => isSameDay(event.startDate, date))
-
-  // Group events by date for agenda view
-  const getGroupedEventsByDate = () => {
+  // Group events by date for agenda view - memoize this calculation
+  const getGroupedEventsByDate = useCallback(() => {
     const groupedEvents: { [key: string]: Event[] } = {}
     
     // Sort events by date
@@ -183,100 +305,59 @@ export function CalendarView() {
     })
     
     return groupedEvents
-  }
+  }, [events]);
 
   // Get days of current week for week view
-  const getDaysOfWeek = () => {
+  const getDaysOfWeek = useCallback(() => {
     const weekStart = startOfWeek(currentDate)
     return Array(7).fill(0).map((_, i) => addDays(weekStart, i))
-  }
+  }, [currentDate]);
 
-  const renderMonthView = () => {
+  const renderMonthView = useCallback(() => {
     return (
-      <motion.div
-        key={currentDate.toISOString()}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {dayNames.map((day) => (
-            <div key={day} className="text-sm font-medium text-slate-500 py-2">
-              {day}
-            </div>
-          ))}
-          {/* Empty cells for days before the first day of month */}
-          {Array.from({ length: firstDayOfMonth }).map((_, index) => (
-            <div key={`empty-${index}`} className="h-24 border border-slate-100 rounded-md p-1"></div>
-          ))}
-          {/* Calendar days */}
-          {Array.from({ length: daysInMonth }).map((_, index) => {
-            const day = index + 1
-            const dayEvents = getEventsForDay(day)
-            const isCurrentDay = 
-              day === today.getDate() && 
-              currentMonth === today.getMonth() && 
-              currentYear === today.getFullYear()
-            
-            const isSelectedDay = day === currentDate.getDate() &&
-                  currentMonth === currentDate.getMonth() &&
-                  currentYear === currentDate.getFullYear();
-
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`${currentMonth}-${currentYear}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <LayoutGroup id={`month-${currentMonth}-${currentYear}`}>
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {dayNames.map((day) => (
+                <div key={day} className="text-sm font-medium text-slate-500 py-2">
+                  {day}
+                </div>
+              ))}
+              {/* Empty cells for days before the first day of month */}
+              {Array.from({ length: firstDayOfMonth }).map((_, index) => (
+                <div key={`empty-${index}`} className="h-24 border border-slate-100 rounded-md p-1"></div>
+              ))}
+              {/* Calendar days - using memoized DayCell component */}
+              {Array.from({ length: daysInMonth }).map((_, index) => {
+                const day = index + 1;
                 return (
-                  <div
-                    key={day}
-                    className={cn(
-                      "h-24 border border-slate-200 rounded-md p-1 overflow-hidden cursor-pointer hover:bg-slate-50",
-                      isCurrentDay && "bg-slate-50 border-slate-300",
-                      isSelectedDay && "bg-orange-200 text-white"
-                    )}
-                    onClick={() => {
-                      setCurrentDate(new Date(currentYear, currentMonth, day))
-                      setViewType("day")
-                    }}
-                  >
-                    <div
-                      className={cn(
-                        "text-right text-sm p-1",
-                        isCurrentDay &&
-                          "font-bold bg-slate-800 text-white rounded-full w-6 h-6 flex items-center justify-center ml-auto",
-                        isSelectedDay &&
-                          "font-bold bg-orange-800 text-white rounded-full w-6 h-6 flex items-center justify-center ml-auto"
-                      )}
-                    >
-                      {day}
-                    </div>
-                    <div className="space-y-1 mt-1">
-                      {dayEvents.slice(0, 3).map((event, i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            "text-xs truncate px-1 py-0.5 rounded",
-                            event.color.replace("bg-", "bg-opacity-15 text-").replace("-500", "-800"),
-                          )}
-                        >
-                          <div className="flex items-center">
-                            <div className={cn("w-1.5 h-1.5 rounded-full mr-1", event.color)}></div>
-                            <span>
-                              {event.time} {event.title}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                      {dayEvents.length > 3 && (
-                        <div className="text-xs text-slate-500 pl-1">
-                          +{dayEvents.length - 3} more
-                        </div>
-                      )}
-                    </div>
-                  </div>
-            )
-          })}
-        </div>
-      </motion.div>
+                  <DayCell
+                    key={`day-${day}-${currentMonth}-${currentYear}`}
+                    day={day}
+                    index={index}
+                    currentMonth={currentMonth}
+                    currentYear={currentYear}
+                    today={today}
+                    events={events}
+                    currentDate={currentDate}
+                    setCurrentDate={setCurrentDate}
+                    setViewType={setViewType}
+                  />
+                );
+              })}
+            </div>
+          </LayoutGroup>
+        </motion.div>
+      </AnimatePresence>
     )
-  }
+  }, [currentMonth, currentYear, firstDayOfMonth, daysInMonth, events, today, currentDate]);
 
   const renderAgendaView = () => {
     const groupedEvents = getGroupedEventsByDate()
@@ -597,4 +678,4 @@ export function CalendarView() {
       </div>
     </div>
   )
-}
+})
