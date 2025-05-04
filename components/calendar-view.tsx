@@ -16,6 +16,7 @@ import {
 import { format, addMonths, subMonths, startOfWeek, endOfWeek, addDays, isSameDay, startOfDay, endOfDay, addDays as addDate, subDays } from "date-fns"
 import { useEventDialog } from "@/hooks/use-event-dialog"
 import { getEvents } from "@/lib/services/event-service"
+import { motion } from "framer-motion";
 
 interface Event {
   id: string
@@ -192,73 +193,88 @@ export function CalendarView() {
 
   const renderMonthView = () => {
     return (
-      <div className="grid grid-cols-7 gap-1 text-center">
-        {dayNames.map((day) => (
-          <div key={day} className="text-sm font-medium text-slate-500 py-2">
-            {day}
-          </div>
-        ))}
-        {/* Empty cells for days before the first day of month */}
-        {Array.from({ length: firstDayOfMonth }).map((_, index) => (
-          <div key={`empty-${index}`} className="h-24 border border-slate-100 rounded-md p-1"></div>
-        ))}
-        {/* Calendar days */}
-        {Array.from({ length: daysInMonth }).map((_, index) => {
-          const day = index + 1
-          const dayEvents = getEventsForDay(day)
-          const isCurrentDay = 
-            day === today.getDate() && 
-            currentMonth === today.getMonth() && 
-            currentYear === today.getFullYear()
-          
-          return (
-            <div
-              key={day}
-              className={cn(
-                "h-24 border border-slate-200 rounded-md p-1 overflow-hidden cursor-pointer hover:bg-slate-50",
-                isCurrentDay && "bg-slate-50 border-slate-300",
-              )}
-              onClick={() => {
-                setCurrentDate(new Date(currentYear, currentMonth, day))
-                setViewType("day")
-              }}
-            >
-              <div
-                className={cn(
-                  "text-right text-sm p-1",
-                  isCurrentDay &&
-                    "font-bold bg-slate-800 text-white rounded-full w-6 h-6 flex items-center justify-center ml-auto",
-                )}
-              >
-                {day}
-              </div>
-              <div className="space-y-1 mt-1">
-                {dayEvents.slice(0, 3).map((event, i) => (
+      <motion.div
+        key={currentDate.toISOString()}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="grid grid-cols-7 gap-1 text-center">
+          {dayNames.map((day) => (
+            <div key={day} className="text-sm font-medium text-slate-500 py-2">
+              {day}
+            </div>
+          ))}
+          {/* Empty cells for days before the first day of month */}
+          {Array.from({ length: firstDayOfMonth }).map((_, index) => (
+            <div key={`empty-${index}`} className="h-24 border border-slate-100 rounded-md p-1"></div>
+          ))}
+          {/* Calendar days */}
+          {Array.from({ length: daysInMonth }).map((_, index) => {
+            const day = index + 1
+            const dayEvents = getEventsForDay(day)
+            const isCurrentDay = 
+              day === today.getDate() && 
+              currentMonth === today.getMonth() && 
+              currentYear === today.getFullYear()
+            
+            const isSelectedDay = day === currentDate.getDate() &&
+                  currentMonth === currentDate.getMonth() &&
+                  currentYear === currentDate.getFullYear();
+
+                return (
                   <div
-                    key={i}
+                    key={day}
                     className={cn(
-                      "text-xs truncate px-1 py-0.5 rounded",
-                      event.color.replace("bg-", "bg-opacity-15 text-").replace("-500", "-800"),
+                      "h-24 border border-slate-200 rounded-md p-1 overflow-hidden cursor-pointer hover:bg-slate-50",
+                      isCurrentDay && "bg-slate-50 border-slate-300",
+                      isSelectedDay && "bg-orange-200 text-white"
                     )}
+                    onClick={() => {
+                      setCurrentDate(new Date(currentYear, currentMonth, day))
+                      setViewType("day")
+                    }}
                   >
-                    <div className="flex items-center">
-                      <div className={cn("w-1.5 h-1.5 rounded-full mr-1", event.color)}></div>
-                      <span>
-                        {event.time} {event.title}
-                      </span>
+                    <div
+                      className={cn(
+                        "text-right text-sm p-1",
+                        isCurrentDay &&
+                          "font-bold bg-slate-800 text-white rounded-full w-6 h-6 flex items-center justify-center ml-auto",
+                        isSelectedDay &&
+                          "font-bold bg-orange-800 text-white rounded-full w-6 h-6 flex items-center justify-center ml-auto"
+                      )}
+                    >
+                      {day}
+                    </div>
+                    <div className="space-y-1 mt-1">
+                      {dayEvents.slice(0, 3).map((event, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "text-xs truncate px-1 py-0.5 rounded",
+                            event.color.replace("bg-", "bg-opacity-15 text-").replace("-500", "-800"),
+                          )}
+                        >
+                          <div className="flex items-center">
+                            <div className={cn("w-1.5 h-1.5 rounded-full mr-1", event.color)}></div>
+                            <span>
+                              {event.time} {event.title}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {dayEvents.length > 3 && (
+                        <div className="text-xs text-slate-500 pl-1">
+                          +{dayEvents.length - 3} more
+                        </div>
+                      )}
                     </div>
                   </div>
-                ))}
-                {dayEvents.length > 3 && (
-                  <div className="text-xs text-slate-500 pl-1">
-                    +{dayEvents.length - 3} more
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      </motion.div>
     )
   }
 
