@@ -14,7 +14,8 @@ import {
   Plus
 } from "lucide-react"
 import { format, addMonths, subMonths, startOfWeek, endOfWeek, addDays, isSameDay, startOfDay, endOfDay, addDays as addDate, subDays } from "date-fns"
-import { NewItemDialog } from "@/components/new-item-dialog"
+import { useEventDialog } from "@/hooks/use-event-dialog"
+import { getEvents } from "@/lib/services/event-service"
 
 interface Event {
   id: string
@@ -35,6 +36,7 @@ export function CalendarView() {
   const [viewType, setViewType] = useState<CalendarViewType>("month")
   const [currentDate, setCurrentDate] = useState(new Date())
   const { user } = useAuth()
+  const { openEventDialog } = useEventDialog()
 
   // Get current date information
   const today = new Date()
@@ -60,7 +62,7 @@ export function CalendarView() {
   const goToNextDay = () => setCurrentDate(addDate(currentDate, 1))
   const goToPreviousDay = () => setCurrentDate(subDays(currentDate, 1))
   
-  // Fetch events from Firestore
+  // Fetch events from Firestore using our service
   useEffect(() => {
     const fetchEvents = async () => {
       if (!user) {
@@ -69,9 +71,10 @@ export function CalendarView() {
       }
       
       try {
-        let startDate, endDate;
-
+        setIsLoading(true)
+        
         // Determine date range based on view type
+        let startDate, endDate;
         if (viewType === "month") {
           // For month view, get full month
           startDate = new Date(currentYear, currentMonth, 1);
@@ -90,38 +93,39 @@ export function CalendarView() {
           endDate = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
         }
         
-        // Query events for selected date range
-        const eventsRef = collection(db, "events")
-        const eventsQuery = query(
-          eventsRef,
-          where("userId", "==", user.uid),
-          where("startDate", ">=", Timestamp.fromDate(startDate)),
-          where("startDate", "<=", Timestamp.fromDate(endDate))
-        )
+        // To avoid Firestore composite index errors, we'll use only startAfter and filter the results in memory
+        // This is a workaround for the Firebase error about multiple range queries
+        const fetchedServiceEvents = await getEvents(user.uid, {
+          startAfter: new Date(startDate.getFullYear() - 1, startDate.getMonth(), startDate.getDate()),
+          orderByField: "startTime",
+          orderDirection: "asc"
+        });
         
-        const querySnapshot = await getDocs(eventsQuery)
-        const fetchedEvents: Event[] = []
+        // Filter events client-side to match the date range
+        const filteredEvents = fetchedServiceEvents.filter(event => {
+          const eventStartTime = new Date(event.startTime);
+          const eventEndTime = new Date(event.endTime);
+          
+          // Include events that start before the end date and end after the start date
+          return eventStartTime <= endDate && eventEndTime >= startDate;
+        });
         
-        querySnapshot.forEach((doc) => {
-          const data = doc.data()
-          const eventDate = data.startDate.toDate()
-          fetchedEvents.push({
-            id: doc.id,
-            title: data.title,
-            time: eventDate.toLocaleTimeString("en-US", { 
-              hour: "numeric", 
-              minute: "2-digit",
-              hour12: true 
-            }),
-            date: eventDate.getDate(),
-            color: data.color || getRandomEventColor(),
-            startDate: eventDate,
-            description: data.description || "",
-            location: data.location || ""
-          })
-        })
+        // Convert to our local Event format
+        const formattedEvents: Event[] = filteredEvents.map(event => {
+          const eventStartDate = new Date(event.startTime);
+          return {
+            id: event.id,
+            title: event.title,
+            time: format(eventStartDate, 'h:mm a'),
+            date: eventStartDate.getDate(),
+            color: getEventColorClass(event.color),
+            startDate: eventStartDate,
+            description: event.description || "",
+            location: event.location || ""
+          };
+        });
         
-        setEvents(fetchedEvents)
+        setEvents(formattedEvents);
       } catch (error) {
         console.error("Error fetching events:", error)
       } finally {
@@ -131,6 +135,23 @@ export function CalendarView() {
     
     fetchEvents()
   }, [user, currentDate, currentMonth, currentYear, viewType])
+
+  // Helper function to convert color hex to a Tailwind class
+  const getEventColorClass = (colorHex?: string) => {
+    if (!colorHex) return "bg-blue-500";
+    
+    const colorMap: Record<string, string> = {
+      "#3B82F6": "bg-blue-500",
+      "#10B981": "bg-green-500",
+      "#EF4444": "bg-red-500",
+      "#F59E0B": "bg-yellow-500", 
+      "#8B5CF6": "bg-purple-500",
+      "#EC4899": "bg-pink-500",
+      "#6366F1": "bg-indigo-500"
+    };
+    
+    return colorMap[colorHex] || "bg-blue-500";
+  }
 
   // Helper function to get a random event color
   const getRandomEventColor = () => {
@@ -431,7 +452,6 @@ export function CalendarView() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-
           <div className="flex items-center space-x-2">
             <Button 
               variant="ghost" 
@@ -456,7 +476,6 @@ export function CalendarView() {
             </Button>
           </div>
         </div>
-
         <div className="flex justify-between items-center">
           {/* Bottom row with title and controls */}
           <div>
@@ -467,7 +486,6 @@ export function CalendarView() {
               {viewType === "agenda" && "Agenda"}
             </h1>
           </div>
-
           <div className="flex items-center space-x-2">
             {/* View controls */}
             <div className="bg-slate-100 rounded-lg p-1 flex">
@@ -511,7 +529,6 @@ export function CalendarView() {
                 Month
               </Button>
             </div>
-
             <Button
               variant="ghost"
               size="sm"
@@ -535,12 +552,15 @@ export function CalendarView() {
               Agenda
             </Button>
             
-            <NewItemDialog 
-              triggerText="Add Event" 
-              dialogTitle="Create New"
-              triggerVariant="default"
-              triggerClassName="rounded-lg bg-amber-700 hover:bg-amber-800"
-            />
+            <Button 
+              variant="default"
+              size="sm"
+              onClick={openEventDialog}
+              className="rounded-lg bg-amber-700 hover:bg-amber-800"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Event
+            </Button>
           </div>
         </div>
       </div>

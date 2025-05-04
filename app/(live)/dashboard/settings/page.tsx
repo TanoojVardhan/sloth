@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { doc, updateDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { db, storage } from "@/lib/firebase"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
@@ -18,9 +19,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function SettingsPage() {
   // User context and state
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading, updateUserProfile } = useAuth()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   // User settings state
   const [displayName, setDisplayName] = useState("")
@@ -162,13 +165,76 @@ export default function SettingsPage() {
     }
   }
 
-  // Handle profile image upload (mock function)
+  // Handle profile image upload
   const handleImageUpload = () => {
-    // In a real implementation, this would handle file uploads
-    toast({
-      title: "Upload feature",
-      description: "Profile image upload would be implemented here.",
-    })
+    // Trigger the hidden file input
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  // Process file selection and upload
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file (JPEG, PNG, etc.)",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    // Check file size (max 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    setUploadingImage(true)
+    
+    try {
+      // Create a reference to the Firebase Storage location
+      const storageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`)
+      
+      // Upload the file
+      const snapshot = await uploadBytes(storageRef, file)
+      
+      // Get the download URL
+      const downloadURL = await getDownloadURL(snapshot.ref)
+      
+      // Update the profile image state
+      setProfileImage(downloadURL)
+      
+      // Update the user's profile in Firebase Auth and Firestore
+      await updateUserProfile({ photoURL: downloadURL })
+      
+      toast({
+        title: "Profile picture updated",
+        description: "Your profile picture has been updated successfully."
+      })
+    } catch (error) {
+      console.error("Error uploading image:", error)
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload profile picture. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setUploadingImage(false)
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
   }
 
   // List of timezones for the timezone selector
@@ -227,6 +293,15 @@ export default function SettingsPage() {
               <CardDescription>Manage your personal information and how others see you</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Hidden file input for profile image upload */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              
               {/* Profile Image */}
               <div className="flex flex-col items-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
                 <Avatar className="h-24 w-24">
@@ -238,9 +313,24 @@ export default function SettingsPage() {
                 <div className="space-y-1">
                   <h3 className="text-lg font-medium">Profile Photo</h3>
                   <p className="text-sm text-muted-foreground">Your profile photo will be visible to others using the platform</p>
-                  <Button onClick={handleImageUpload} type="button" size="sm" className="mt-2">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Change Photo
+                  <Button 
+                    onClick={handleImageUpload} 
+                    type="button" 
+                    size="sm" 
+                    className="mt-2"
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Change Photo
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

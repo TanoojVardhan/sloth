@@ -18,6 +18,7 @@ import {
   HelpCircle,
   MessageSquare,
   UserIcon,
+  CalendarDays,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -39,6 +40,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Skeleton } from "@/components/ui/skeleton"
 import { NotificationsList } from "@/components/notifications-list"
 import { getTasks } from "@/lib/services/task-service"
+import { getEvents } from "@/lib/services/event-service"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -47,6 +49,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [taskCount, setTaskCount] = useState<number | null>(null)
+  const [eventCount, setEventCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
   const pathname = usePathname()
@@ -76,10 +79,34 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     fetchTaskCount()
   }, [user])
 
+  // Fetch upcoming events count for the badge
+  useEffect(() => {
+    async function fetchEventCount() {
+      if (user) {
+        try {
+          const events = await getEvents(user.uid)
+          // Count upcoming events (events that haven't passed)
+          const today = new Date()
+          const upcomingEventCount = events.filter(
+            (event) =>
+              new Date(event.startTime) > today || new Date(event.endTime) > today
+          ).length
+          setEventCount(upcomingEventCount)
+        } catch (error) {
+          console.error("Error fetching event count:", error)
+          // If there's an error, don't show the badge
+          setEventCount(null)
+        }
+      }
+    }
+
+    fetchEventCount()
+  }, [user])
+
   // Handle unread notifications status
   const handleUnreadNotificationsChange = useCallback((hasUnread: boolean) => {
-    setHasUnreadNotifications(hasUnread);
-  }, []);
+    setHasUnreadNotifications(hasUnread)
+  }, [])
 
   // Close sidebar when clicking outside on mobile
   useEffect(() => {
@@ -139,6 +166,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       badge: taskCount !== null ? String(taskCount) : undefined,
     },
     {
+      href: "/dashboard/events",
+      label: "Events",
+      icon: <CalendarDays className="h-5 w-5" />,
+      badge: eventCount !== null ? String(eventCount) : undefined,
+    },
+    {
       href: "/dashboard/calendar",
       label: "Calendar",
       icon: <CalendarIcon className="h-5 w-5" />,
@@ -185,7 +218,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         id="sidebar"
         className={cn(
           "fixed inset-y-0 left-0 z-30 w-64 transform bg-white/90 backdrop-blur-sm shadow-lg transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:z-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex h-full flex-col">
@@ -204,7 +237,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
                     pathname === route.href
                       ? "bg-primary text-primary-foreground"
-                      : "text-foreground/70 hover:bg-accent hover:text-accent-foreground",
+                      : "text-foreground/70 hover:bg-accent hover:text-accent-foreground"
                   )}
                 >
                   <div className="flex items-center">
@@ -236,14 +269,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <>
                       <Avatar className="h-8 w-8 mr-2">
                         {user?.photoURL ? (
-                          <AvatarImage src={user.photoURL || "/placeholder.svg"} alt={user.displayName || "User"} />
+                          <AvatarImage
+                            src={user.photoURL || "/placeholder.svg"}
+                            alt={user.displayName || "User"}
+                          />
                         ) : (
                           <AvatarFallback>{userInitials}</AvatarFallback>
                         )}
                       </Avatar>
                       <div className="flex flex-col items-start text-sm">
                         <span className="font-medium">{user?.displayName || "User"}</span>
-                        <span className="text-xs text-muted-foreground">{user?.email || "user@example.com"}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {user?.email || "user@example.com"}
+                        </span>
                       </div>
                     </>
                   )}
@@ -277,11 +315,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center md:w-56 md:flex-shrink-0">
             <div className="relative w-full md:max-w-xs">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input type="search" placeholder="Search..." className="w-full rounded-full bg-muted pl-8 md:max-w-xs" />
+              <Input
+                type="search"
+                placeholder="Search..."
+                className="w-full rounded-full bg-muted pl-8 md:max-w-xs"
+              />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-foreground/70" onClick={startListening}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-foreground/70"
+              onClick={startListening}
+            >
               <MessageSquare className="h-5 w-5" />
               <span className="sr-only">AI Assistant</span>
             </Button>
@@ -304,7 +351,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <DropdownMenuSeparator />
                 <NotificationsList onHasUnreadChange={handleUnreadNotificationsChange} />
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="justify-center font-medium">View all notifications</DropdownMenuItem>
+                <DropdownMenuItem className="justify-center font-medium">
+                  View all notifications
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <div className="hidden md:block">
@@ -320,7 +369,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       <>
                         <Avatar className="h-6 w-6">
                           {user?.photoURL ? (
-                            <AvatarImage src={user.photoURL || "/placeholder.svg"} alt={user.displayName || "User"} />
+                            <AvatarImage
+                              src={user.photoURL || "/placeholder.svg"}
+                              alt={user.displayName || "User"}
+                            />
                           ) : (
                             <AvatarFallback>{userInitials}</AvatarFallback>
                           )}

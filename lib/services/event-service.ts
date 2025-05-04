@@ -12,26 +12,21 @@ import {
   orderBy,
   serverTimestamp,
   Timestamp,
+  limit,
+  startAfter,
+  type DocumentSnapshot,
 } from "firebase/firestore"
 
-export interface CalendarEvent {
+export interface Event {
   id: string
   title: string
   description?: string
-  startDate: string
-  startTime?: string
-  endDate?: string
-  endTime?: string
-  allDay: boolean
+  startTime: string
+  endTime: string
   location?: string
+  allDay: boolean
   color?: string
-  reminder?: number // minutes before event
-  recurrence?: {
-    frequency: "daily" | "weekly" | "monthly" | "yearly"
-    interval: number
-    endDate?: string
-    count?: number
-  }
+  tags?: string[]
   createdAt: Date
   updatedAt: Date
 }
@@ -39,64 +34,120 @@ export interface CalendarEvent {
 export interface EventFormData {
   title: string
   description?: string
-  startDate: string
   startTime?: string
-  endDate?: string
   endTime?: string
-  allDay?: boolean
   location?: string
+  allDay?: boolean
   color?: string
-  reminder?: number
-  recurrence?: {
-    frequency: "daily" | "weekly" | "monthly" | "yearly"
-    interval: number
-    endDate?: string
-    count?: number
+  tags?: string[]
+}
+
+export interface EventsQueryOptions {
+  startAfter?: Date
+  endBefore?: Date
+  tag?: string
+  limit?: number
+  startAfterDoc?: DocumentSnapshot
+  orderByField?: "startTime" | "endTime" | "createdAt" | "updatedAt"
+  orderDirection?: "asc" | "desc"
+}
+
+// Helper function to safely convert Firestore timestamp to Date
+function safeTimestampToDate(timestamp: any): Date {
+  try {
+    if (timestamp instanceof Timestamp) {
+      return timestamp.toDate();
+    } else if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    } else if (timestamp instanceof Date) {
+      return timestamp;
+    } else if (typeof timestamp === 'string') {
+      const parsedDate = new Date(timestamp);
+      // Check if date is valid
+      if (isNaN(parsedDate.getTime())) {
+        throw new Error('Invalid date string');
+      }
+      return parsedDate;
+    } else if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
+      // Handle raw Firestore timestamp object
+      return new Date(timestamp.seconds * 1000);
+    }
+    
+    // If we reach here, we don't have a valid timestamp
+    throw new Error('Invalid timestamp format');
+  } catch (error) {
+    console.warn('Invalid timestamp format:', timestamp, error);
+    // Return current date as fallback
+    return new Date();
   }
 }
 
-export async function getEvents(userId: string, startDate?: Date, endDate?: Date): Promise<CalendarEvent[]> {
+export async function getEvents(userId: string, options: EventsQueryOptions = {}): Promise<Event[]> {
   try {
     const eventsRef = collection(db, "events")
-    let q = query(eventsRef, where("userId", "==", userId), orderBy("startDate", "asc"))
+    let q = query(eventsRef, where("userId", "==", userId))
 
-    // Filter by date range if provided
-    if (startDate) {
-      q = query(q, where("startDate", ">=", Timestamp.fromDate(startDate)))
+    // Apply filters
+    if (options.startAfter) {
+      q = query(q, where("startTime", ">=", Timestamp.fromDate(options.startAfter)))
+    }
+    if (options.endBefore) {
+      q = query(q, where("endTime", "<=", Timestamp.fromDate(options.endBefore)))
+    }
+    if (options.tag) {
+      q = query(q, where("tags", "array-contains", options.tag))
     }
 
-    if (endDate) {
-      q = query(q, where("startDate", "<=", Timestamp.fromDate(endDate)))
+    // Apply ordering
+    const orderByField = options.orderByField || "startTime"
+    const orderDirection = options.orderDirection || "asc"
+    q = query(q, orderBy(orderByField, orderDirection))
+
+    // Apply pagination
+    if (options.limit) {
+      q = query(q, limit(options.limit))
+    }
+    if (options.startAfterDoc) {
+      q = query(q, startAfter(options.startAfterDoc))
     }
 
     const querySnapshot = await getDocs(q)
-
     return querySnapshot.docs.map((doc) => {
       const data = doc.data()
-      return {
-        id: doc.id,
-        title: data.title,
-        description: data.description,
-        startDate: data.startDate.toDate().toISOString().split("T")[0],
-        startTime: data.startTime,
-        endDate: data.endDate ? data.endDate.toDate().toISOString().split("T")[0] : undefined,
-        endTime: data.endTime,
-        allDay: data.allDay,
-        location: data.location,
-        color: data.color,
-        reminder: data.reminder,
-        recurrence: data.recurrence,
-        createdAt: data.createdAt.toDate(),
-        updatedAt: data.updatedAt.toDate(),
+      
+      try {
+        // Use the helper function to safely convert timestamps
+        const startDate = safeTimestampToDate(data.startTime);
+        const endDate = safeTimestampToDate(data.endTime);
+        const createdDate = safeTimestampToDate(data.createdAt);
+        const updatedDate = safeTimestampToDate(data.updatedAt);
+        
+        return {
+          id: doc.id,
+          title: data.title,
+          description: data.description || undefined,
+          startTime: startDate.toISOString(),
+          endTime: endDate.toISOString(),
+          location: data.location || undefined,
+          allDay: data.allDay || false,
+          color: data.color || undefined,
+          tags: data.tags || [],
+          createdAt: createdDate,
+          updatedAt: updatedDate,
+        }
+      } catch (error) {
+        console.error(`Error processing event ${doc.id}:`, error);
+        // Skip this event by returning null, we'll filter these out below
+        return null;
       }
-    })
+    }).filter(event => event !== null) as Event[]; // Filter out any nulls
   } catch (error) {
     console.error("Error fetching events:", error)
     return []
   }
 }
 
-export async function getEventById(eventId: string, userId: string): Promise<CalendarEvent | null> {
+export async function getEventById(eventId: string, userId: string): Promise<Event | null> {
   try {
     const eventRef = doc(db, "events", eventId)
     const eventSnap = await getDoc(eventRef)
@@ -111,22 +162,30 @@ export async function getEventById(eventId: string, userId: string): Promise<Cal
     if (data.userId !== userId) {
       return null
     }
+    
+    try {
+      // Use the helper function to safely convert timestamps
+      const startDate = safeTimestampToDate(data.startTime);
+      const endDate = safeTimestampToDate(data.endTime);
+      const createdDate = safeTimestampToDate(data.createdAt);
+      const updatedDate = safeTimestampToDate(data.updatedAt);
 
-    return {
-      id: eventSnap.id,
-      title: data.title,
-      description: data.description,
-      startDate: data.startDate.toDate().toISOString().split("T")[0],
-      startTime: data.startTime,
-      endDate: data.endDate ? data.endDate.toDate().toISOString().split("T")[0] : undefined,
-      endTime: data.endTime,
-      allDay: data.allDay,
-      location: data.location,
-      color: data.color,
-      reminder: data.reminder,
-      recurrence: data.recurrence,
-      createdAt: data.createdAt.toDate(),
-      updatedAt: data.updatedAt.toDate(),
+      return {
+        id: eventSnap.id,
+        title: data.title,
+        description: data.description || undefined,
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
+        location: data.location || undefined,
+        allDay: data.allDay || false,
+        color: data.color || undefined,
+        tags: data.tags || [],
+        createdAt: createdDate,
+        updatedAt: updatedDate,
+      }
+    } catch (error) {
+      console.error(`Error processing event ${eventId}:`, error);
+      return null;
     }
   } catch (error) {
     console.error("Error fetching event:", error)
@@ -134,58 +193,120 @@ export async function getEventById(eventId: string, userId: string): Promise<Cal
   }
 }
 
-export async function createEvent(eventData: EventFormData, userId: string): Promise<CalendarEvent> {
+export async function createEvent(eventData: EventFormData, userId: string): Promise<Event> {
   try {
-    const eventRef = collection(db, "events")
+    console.log("Creating event with data:", JSON.stringify(eventData), "for user:", userId)
 
-    const now = serverTimestamp()
-    const eventToAdd = {
-      title: eventData.title,
-      description: eventData.description || null,
-      startDate: Timestamp.fromDate(new Date(eventData.startDate)),
-      startTime: eventData.startTime || null,
-      endDate: eventData.endDate ? Timestamp.fromDate(new Date(eventData.endDate)) : null,
-      endTime: eventData.endTime || null,
-      allDay: eventData.allDay || false,
-      location: eventData.location || null,
-      color: eventData.color || "#3b82f6", // Default blue
-      reminder: eventData.reminder || null,
-      recurrence: eventData.recurrence || null,
-      userId,
-      createdAt: now,
-      updatedAt: now,
+    // Enhanced validation for user authentication
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      console.error("Invalid userId provided:", userId)
+      throw new Error("Valid user ID is required to create an event")
     }
 
-    const docRef = await addDoc(eventRef, eventToAdd)
-    const createdAt = new Date()
+    // Strict validation of required fields
+    if (!eventData.title || eventData.title.trim() === '') {
+      throw new Error("Event title is required")
+    }
+    
+    if (!eventData.startTime || !eventData.endTime) {
+      throw new Error("Event start and end times are required")
+    }
 
+    // Initialize event reference
+    const eventRef = collection(db, "events")
+    
+    // Handle date conversion
+    let startTime, endTime
+    try {
+      startTime = Timestamp.fromDate(new Date(eventData.startTime))
+      endTime = Timestamp.fromDate(new Date(eventData.endTime))
+    } catch (dateError) {
+      console.error("Error parsing dates:", dateError)
+      throw new Error("Invalid date format")
+    }
+
+    // Create a complete event object with defaults for all fields
+    const eventToAdd = {
+      title: eventData.title.trim(),
+      description: eventData.description || "",
+      startTime: startTime,
+      endTime: endTime,
+      location: eventData.location || "",
+      allDay: eventData.allDay === true ? true : false,
+      color: eventData.color || "#3B82F6", // Default blue color
+      tags: Array.isArray(eventData.tags) ? eventData.tags : [],
+      userId: userId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }
+
+    console.log("Final event data being sent to Firestore:", JSON.stringify({
+      ...eventToAdd,
+      userId: `${userId.substring(0, 3)}...${userId.substring(userId.length - 3)}` // Redact full userId in logs
+    }))
+
+    // Add the document with retries for network issues
+    let attempts = 0
+    const maxAttempts = 3
+    let docRef
+
+    // Use a more reliable approach for adding the document
+    while (attempts < maxAttempts) {
+      try {
+        docRef = await addDoc(eventRef, eventToAdd)
+        console.log("Event document added with ID:", docRef.id)
+        break // Success, exit loop
+      } catch (addError) {
+        attempts++
+        console.error(`Event creation attempt ${attempts} failed:`, addError)
+        
+        // Specific error handling for common issues
+        if (addError instanceof Error) {
+          if (addError.message.includes("permission-denied") || 
+              addError.message.includes("Missing or insufficient permissions")) {
+            console.error("Permission denied. User may not be properly authenticated.")
+            throw new Error("Permission denied: Make sure you're logged in and have permission to create events")
+          }
+          
+          if (addError.message.includes("network") && attempts < maxAttempts) {
+            // Wait before retry
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempts))
+            continue
+          }
+        }
+        
+        throw addError // Re-throw if it's not a network error or we've exceeded retries
+      }
+    }
+    
+    if (!docRef) {
+      throw new Error("Failed to create event after multiple attempts")
+    }
+    
+    const createdAt = new Date()
+    
+    // Return a properly formatted event object
     return {
       id: docRef.id,
       title: eventData.title,
       description: eventData.description,
-      startDate: eventData.startDate,
-      startTime: eventData.startTime,
-      endDate: eventData.endDate,
-      endTime: eventData.endTime,
-      allDay: eventData.allDay || false,
+      startTime: new Date(eventData.startTime).toISOString(),
+      endTime: new Date(eventData.endTime).toISOString(),
       location: eventData.location,
-      color: eventData.color || "#3b82f6",
-      reminder: eventData.reminder,
-      recurrence: eventData.recurrence,
+      allDay: eventData.allDay || false,
+      color: eventData.color || "#3B82F6",
+      tags: Array.isArray(eventData.tags) ? eventData.tags : [],
       createdAt,
       updatedAt: createdAt,
     }
   } catch (error) {
     console.error("Error creating event:", error)
+    console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace")
     throw error
   }
 }
 
-export async function updateEvent(
-  eventId: string,
-  eventData: Partial<EventFormData>,
-  userId: string,
-): Promise<CalendarEvent> {
+export async function updateEvent(eventId: string, eventData: EventFormData, userId: string): Promise<Event> {
   try {
     const eventRef = doc(db, "events", eventId)
     const eventSnap = await getDoc(eventRef)
@@ -201,48 +322,65 @@ export async function updateEvent(
       throw new Error("Unauthorized")
     }
 
-    const eventToUpdate: any = {
+    // Process dates
+    let startTime = data.startTime
+    let endTime = data.endTime
+
+    if (eventData.startTime) {
+      try {
+        startTime = Timestamp.fromDate(new Date(eventData.startTime))
+      } catch (error) {
+        console.error("Invalid start time:", error);
+        throw new Error("Invalid start time format")
+      }
+    }
+    
+    if (eventData.endTime) {
+      try {
+        endTime = Timestamp.fromDate(new Date(eventData.endTime))
+      } catch (error) {
+        console.error("Invalid end time:", error);
+        throw new Error("Invalid end time format")
+      }
+    }
+
+    const eventToUpdate = {
+      title: eventData.title !== undefined ? eventData.title : data.title,
+      description: eventData.description !== undefined ? eventData.description : data.description,
+      startTime: startTime,
+      endTime: endTime,
+      location: eventData.location !== undefined ? eventData.location : data.location,
+      allDay: eventData.allDay !== undefined ? eventData.allDay : data.allDay,
+      color: eventData.color !== undefined ? eventData.color : data.color,
+      tags: eventData.tags !== undefined ? eventData.tags : data.tags,
       updatedAt: serverTimestamp(),
     }
 
-    // Only update fields that are provided
-    if (eventData.title !== undefined) eventToUpdate.title = eventData.title
-    if (eventData.description !== undefined) eventToUpdate.description = eventData.description
-    if (eventData.startDate !== undefined) {
-      eventToUpdate.startDate = Timestamp.fromDate(new Date(eventData.startDate))
-    }
-    if (eventData.startTime !== undefined) eventToUpdate.startTime = eventData.startTime
-    if (eventData.endDate !== undefined) {
-      eventToUpdate.endDate = eventData.endDate ? Timestamp.fromDate(new Date(eventData.endDate)) : null
-    }
-    if (eventData.endTime !== undefined) eventToUpdate.endTime = eventData.endTime
-    if (eventData.allDay !== undefined) eventToUpdate.allDay = eventData.allDay
-    if (eventData.location !== undefined) eventToUpdate.location = eventData.location
-    if (eventData.color !== undefined) eventToUpdate.color = eventData.color
-    if (eventData.reminder !== undefined) eventToUpdate.reminder = eventData.reminder
-    if (eventData.recurrence !== undefined) eventToUpdate.recurrence = eventData.recurrence
-
     await updateDoc(eventRef, eventToUpdate)
+    const updatedAt = new Date()
+    
+    try {
+      // Use the helper function for timestamps
+      const startDate = safeTimestampToDate(eventToUpdate.startTime);
+      const endDate = safeTimestampToDate(eventToUpdate.endTime);
+      const createdDate = safeTimestampToDate(data.createdAt);
 
-    // Get the updated document
-    const updatedEventSnap = await getDoc(eventRef)
-    const updatedData = updatedEventSnap.data()
-
-    return {
-      id: eventId,
-      title: updatedData.title,
-      description: updatedData.description,
-      startDate: updatedData.startDate.toDate().toISOString().split("T")[0],
-      startTime: updatedData.startTime,
-      endDate: updatedData.endDate ? updatedData.endDate.toDate().toISOString().split("T")[0] : undefined,
-      endTime: updatedData.endTime,
-      allDay: updatedData.allDay,
-      location: updatedData.location,
-      color: updatedData.color,
-      reminder: updatedData.reminder,
-      recurrence: updatedData.recurrence,
-      createdAt: updatedData.createdAt.toDate(),
-      updatedAt: updatedData.updatedAt.toDate(),
+      return {
+        id: eventId,
+        title: eventToUpdate.title,
+        description: eventToUpdate.description || undefined,
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
+        location: eventToUpdate.location || undefined,
+        allDay: eventToUpdate.allDay || false,
+        color: eventToUpdate.color || undefined,
+        tags: eventToUpdate.tags || [],
+        createdAt: createdDate,
+        updatedAt,
+      }
+    } catch (error) {
+      console.error(`Error processing updated event ${eventId}:`, error);
+      throw new Error("Failed to process event data after update")
     }
   } catch (error) {
     console.error("Error updating event:", error)
@@ -270,5 +408,25 @@ export async function deleteEvent(eventId: string, userId: string): Promise<void
   } catch (error) {
     console.error("Error deleting event:", error)
     throw error
+  }
+}
+
+export async function getUpcomingEventsCount(userId: string): Promise<number> {
+  try {
+    const eventsRef = collection(db, "events")
+    const now = new Date()
+    
+    const upcomingQuery = query(
+      eventsRef,
+      where("userId", "==", userId),
+      where("endTime", ">=", Timestamp.fromDate(now))
+    )
+    
+    const upcomingSnapshot = await getDocs(upcomingQuery)
+    return upcomingSnapshot.size
+    
+  } catch (error) {
+    console.error("Error getting upcoming events count:", error)
+    return 0
   }
 }

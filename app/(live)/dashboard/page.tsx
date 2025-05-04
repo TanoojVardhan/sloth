@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import TaskList from "@/components/task-list"
 import Calendar from "@/components/calendar"
-import { GoalTracker } from "@/components/goal-tracker"
+import GoalTracker from "@/components/goal-tracker"
 import { ProjectIdeas } from "@/components/project-ideas"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardShell } from "@/components/dashboard-shell"
