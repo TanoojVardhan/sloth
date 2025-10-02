@@ -299,7 +299,6 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
                       setDate(date)
                       setDueDate(date)
                     }}
-                    initialFocus
                   />
                 </PopoverContent>
               </Popover>

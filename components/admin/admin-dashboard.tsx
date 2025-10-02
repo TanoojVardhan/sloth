@@ -110,12 +110,8 @@ export function AdminDashboard() {
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full bg-slate-500 rounded-full"
-                          style={{
-                            width: `${
-                              (userStats.user / (userStats.user + userStats.admin + userStats.super_admin)) * 100
-                            }%`,
-                          }}
+                          className="h-full bg-slate-500 rounded-full dashboard-bar"
+                          data-width={`${(userStats.user / (userStats.user + userStats.admin + userStats.super_admin)) * 100}%`}
                         ></div>
                       </div>
                     </div>
@@ -126,12 +122,8 @@ export function AdminDashboard() {
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full bg-blue-500 rounded-full"
-                          style={{
-                            width: `${
-                              (userStats.admin / (userStats.user + userStats.admin + userStats.super_admin)) * 100
-                            }%`,
-                          }}
+                          className="h-full bg-blue-500 rounded-full dashboard-bar"
+                          data-width={`${(userStats.admin / (userStats.user + userStats.admin + userStats.super_admin)) * 100}%`}
                         ></div>
                       </div>
                     </div>
@@ -142,12 +134,8 @@ export function AdminDashboard() {
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full bg-purple-500 rounded-full"
-                          style={{
-                            width: `${
-                              (userStats.super_admin / (userStats.user + userStats.admin + userStats.super_admin)) * 100
-                            }%`,
-                          }}
+                          className="h-full bg-purple-500 rounded-full dashboard-bar"
+                          data-width={`${(userStats.super_admin / (userStats.user + userStats.admin + userStats.super_admin)) * 100}%`}
                         ></div>
                       </div>
                     </div>
@@ -176,14 +164,8 @@ export function AdminDashboard() {
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full bg-yellow-500 rounded-full"
-                          style={{
-                            width: `${
-                              (moderationStats.pending /
-                                (moderationStats.pending + moderationStats.approved + moderationStats.rejected || 1)) *
-                              100
-                            }%`,
-                          }}
+                          className="h-full bg-yellow-500 rounded-full dashboard-bar"
+                          data-width={`${(moderationStats.pending / (moderationStats.pending + moderationStats.approved + moderationStats.rejected || 1)) * 100}%`}
                         ></div>
                       </div>
                     </div>
@@ -194,14 +176,8 @@ export function AdminDashboard() {
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full bg-green-500 rounded-full"
-                          style={{
-                            width: `${
-                              (moderationStats.approved /
-                                (moderationStats.pending + moderationStats.approved + moderationStats.rejected || 1)) *
-                              100
-                            }%`,
-                          }}
+                          className="h-full bg-green-500 rounded-full dashboard-bar"
+                          data-width={`${(moderationStats.approved / (moderationStats.pending + moderationStats.approved + moderationStats.rejected || 1)) * 100}%`}
                         ></div>
                       </div>
                     </div>
@@ -212,14 +188,8 @@ export function AdminDashboard() {
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full bg-red-500 rounded-full"
-                          style={{
-                            width: `${
-                              (moderationStats.rejected /
-                                (moderationStats.pending + moderationStats.approved + moderationStats.rejected || 1)) *
-                              100
-                            }%`,
-                          }}
+                          className="h-full bg-red-500 rounded-full dashboard-bar"
+                          data-width={`${(moderationStats.rejected / (moderationStats.pending + moderationStats.approved + moderationStats.rejected || 1)) * 100}%`}
                         ></div>
                       </div>
                     </div>

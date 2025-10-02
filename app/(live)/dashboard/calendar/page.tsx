@@ -1,31 +1,19 @@
-"use client"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { DashboardShell } from "@/components/dashboard-shell"
-import { SiteFooter } from "@/components/site-footer"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-import { CalendarInterface } from "@/components/calendar-interface"
-import { useEventDialog } from "@/hooks/use-event-dialog"
+import type { Metadata } from "next"
+import MonthCalendar from "@/components/calendar/month-calendar"
+
+export const metadata: Metadata = {
+  title: "Calendar",
+  description: "Monthly calendar view",
+}
 
 export default function CalendarPage() {
-  const { openEventDialog } = useEventDialog()
-
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex-1">
-        <DashboardShell className="container py-6">
-          <DashboardHeader heading="Calendar" text="Manage your schedule and events">
-            <Button 
-              className="bg-slate-800 hover:bg-slate-700"
-              onClick={openEventDialog}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Event
-            </Button>
-          </DashboardHeader>
-          <CalendarInterface />
-        </DashboardShell>
-      </div>
-    </div>
+    <main className="mx-auto w-full max-w-5xl p-6">
+      <h1 className="mb-4 text-balance text-3xl font-semibold">Calendar</h1>
+      <p className="mb-6 text-pretty text-muted-foreground">
+        Browse months, click a day to add quick notes. You can wire this up to your backend later.
+      </p>
+      <MonthCalendar />
+    </main>
   )
 }

@@ -24,6 +24,7 @@ export interface Goal {
   targetAmount?: number
   currentAmount?: number
   completed: boolean
+  archived?: boolean
   dueDate?: string
   category?: string
   tags?: string[]
@@ -37,6 +38,7 @@ export interface GoalFormData {
   targetAmount?: number
   currentAmount?: number
   completed?: boolean
+  archived?: boolean
   dueDate?: string
   category?: string
   tags?: string[]
@@ -111,7 +113,6 @@ export async function getGoals(userId: string, options: GoalsQueryOptions = {}):
     console.log("getGoals: Executing query...");
     const querySnapshot = await getDocs(q);
     console.log(`getGoals: Query returned ${querySnapshot.size} documents`);
-    
     return querySnapshot.docs.map((doc) => {
       const data = doc.data();
       return {
@@ -121,6 +122,7 @@ export async function getGoals(userId: string, options: GoalsQueryOptions = {}):
         targetAmount: data.targetAmount || undefined,
         currentAmount: data.currentAmount || 0,
         completed: data.completed || false,
+        archived: typeof data.archived === 'boolean' ? data.archived : false,
         dueDate: data.dueDate ? data.dueDate.toDate().toISOString().split("T")[0] : undefined,
         category: data.category || undefined,
         tags: data.tags || [],
@@ -163,6 +165,7 @@ export async function getGoalById(goalId: string, userId: string): Promise<Goal 
       updatedAt: data.updatedAt.toDate(),
     }
   } catch (error) {
+    // (removed stray archived line)
     console.error("Error fetching goal:", error)
     return null
   }
@@ -196,6 +199,7 @@ export async function createGoal(goalData: GoalFormData, userId: string): Promis
       targetAmount: goalData.targetAmount || null,
       currentAmount: goalData.currentAmount || 0,
       completed: goalData.completed || false,
+      archived: typeof goalData.archived === 'boolean' ? goalData.archived : false,
       dueDate: dueDate,
       category: goalData.category || null,
       tags: goalData.tags || [],
@@ -215,6 +219,7 @@ export async function createGoal(goalData: GoalFormData, userId: string): Promis
       targetAmount: goalData.targetAmount,
       currentAmount: goalData.currentAmount || 0,
       completed: goalData.completed || false,
+      archived: typeof goalData.archived === 'boolean' ? goalData.archived : false,
       dueDate: goalData.dueDate,
       category: goalData.category,
       tags: goalData.tags || [],
@@ -248,6 +253,7 @@ export async function updateGoal(goalId: string, goalData: GoalFormData, userId:
       targetAmount: goalData.targetAmount !== undefined ? goalData.targetAmount : data.targetAmount,
       currentAmount: goalData.currentAmount !== undefined ? goalData.currentAmount : data.currentAmount,
       completed: goalData.completed !== undefined ? goalData.completed : data.completed,
+      archived: typeof goalData.archived === 'boolean' ? goalData.archived : (typeof data.archived === 'boolean' ? data.archived : false),
       dueDate: goalData.dueDate ? Timestamp.fromDate(new Date(goalData.dueDate)) : data.dueDate,
       category: goalData.category || data.category,
       tags: goalData.tags || data.tags,
@@ -264,6 +270,7 @@ export async function updateGoal(goalId: string, goalData: GoalFormData, userId:
       targetAmount: goalData.targetAmount !== undefined ? goalData.targetAmount : data.targetAmount,
       currentAmount: goalData.currentAmount !== undefined ? goalData.currentAmount : data.currentAmount,
       completed: goalData.completed !== undefined ? goalData.completed : data.completed,
+      archived: typeof goalData.archived === 'boolean' ? goalData.archived : (typeof data.archived === 'boolean' ? data.archived : false),
       dueDate: goalData.dueDate || (data.dueDate ? data.dueDate.toDate().toISOString().split("T")[0] : undefined),
       category: goalData.category || data.category,
       tags: goalData.tags || data.tags || [],

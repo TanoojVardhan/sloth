@@ -48,6 +48,7 @@ export default function TaskList() {
   const { startListening } = useAIAssistant()
   const { toast } = useToast()
   const { user, isLoading: authLoading } = useAuth()
+  // Always require authentication; no demo mode
 
   useEffect(() => {
     if (!authLoading) {
@@ -55,7 +56,10 @@ export default function TaskList() {
         const fetchData = async () => {
           setIsLoading(true)
           try {
-            const [fetchedTasks, fetchedStats] = await Promise.all([getTasks(user.uid), getTaskStats(user.uid)])
+            const [fetchedTasks, fetchedStats] = await Promise.all([
+              getTasks(user.uid),
+              getTaskStats(user.uid),
+            ])
             setTasks(fetchedTasks)
             setStats(fetchedStats)
           } catch (error) {
@@ -71,7 +75,6 @@ export default function TaskList() {
         }
         fetchData()
       } else {
-        console.warn("User is not authenticated. Skipping task fetching.")
         setTasks([])
         setStats({ total: 0, completed: 0, pending: 0, overdue: 0 })
         setIsLoading(false)
@@ -90,8 +93,20 @@ export default function TaskList() {
   }
 
   const handleAddTask = async () => {
-    if (!newTaskTitle.trim() || !user) {
-      console.warn("Task title is empty or user is not authenticated.", { newTaskTitle, user })
+    if (!newTaskTitle.trim()) {
+      toast({
+        title: "Error",
+        description: "Task title is required.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add tasks.",
+        variant: "destructive",
+      })
       return
     }
     setIsAddingTask(true)
@@ -101,7 +116,6 @@ export default function TaskList() {
         completed: false,
         priority: "medium",
       }
-      console.log("Adding task with data:", taskData)
       const newTask = await createTask(taskData, user.uid)
       setTasks((prevTasks) => [...prevTasks, newTask])
       setNewTaskTitle("")

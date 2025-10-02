@@ -249,7 +249,10 @@ export default function UpcomingEvents() {
               key={item.id}
               className="flex items-center p-2 rounded-md border border-slate-200 bg-slate-50"
             >
-              <div className="w-2 h-10 rounded-full mr-3" style={{ backgroundColor: item.color }}></div>
+              <div
+                className="w-2 h-10 rounded-full mr-3 upcoming-bar"
+                data-color={item.color}
+              ></div>
               <div className="flex-grow">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">

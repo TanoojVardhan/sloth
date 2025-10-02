@@ -26,8 +26,6 @@ import { type Event, type EventFormData } from "@/lib/services/event-service"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Switch } from "@/components/ui/switch"
-import { TimePicker } from "@/components/ui/time-picker" // If the time-picker component exists
 
 interface EventDialogProps {
   open: boolean
@@ -223,8 +221,8 @@ export function EventDialog({ open, onOpenChange, event, onSave }: EventDialogPr
   // Function to render color circle
   const renderColorCircle = (colorValue: string) => (
     <div
-      className="w-4 h-4 rounded-full mr-2"
-      style={{ backgroundColor: colorValue }}
+      className="w-4 h-4 rounded-full mr-2 event-dialog-color"
+      data-color={colorValue}
     />
   )
 

@@ -314,14 +314,14 @@ export default function EventList({ filter = "all" }: EventListProps) {
                   return (
                     <div
                       key={event.id}
-                      className="flex flex-col rounded-lg border p-3 transition-colors hover:bg-accent/50"
-                      style={{ borderLeft: `4px solid ${event.color || "#3B82F6"}` }}
+                      className="flex flex-col rounded-lg border p-3 transition-colors hover:bg-accent/50 event-list-item-border"
+                      data-color={event.color || "#3B82F6"}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2 flex-1 min-w-0">
                           <CalendarDays 
-                            className="h-5 w-5 shrink-0" 
-                            style={{ color: event.color || "#3B82F6" }}
+                            className="h-5 w-5 shrink-0 event-list-item-color"
+                            data-color={event.color || "#3B82F6"}
                           />
                           <div className="flex flex-col min-w-0">
                             <h4 className="text-sm font-medium truncate">{event.title}</h4>

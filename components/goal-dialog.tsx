@@ -335,9 +335,34 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
                         </div>
                       </div>
                       <div className="overflow-hidden h-2 mb-2 text-xs flex rounded bg-muted">
-                        <div 
-                          style={{ width: `${getProgressPercentage()}%` }}
-                          className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary"
+                        <div
+                          className={
+                            `shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary transition-all duration-300` +
+                            ` ` +
+                            (getProgressPercentage() === 0
+                              ? 'w-0'
+                              : getProgressPercentage() < 10
+                                ? 'w-1/12'
+                                : getProgressPercentage() < 20
+                                  ? 'w-2/12'
+                                  : getProgressPercentage() < 30
+                                    ? 'w-3/12'
+                                    : getProgressPercentage() < 40
+                                      ? 'w-4/12'
+                                      : getProgressPercentage() < 50
+                                        ? 'w-5/12'
+                                        : getProgressPercentage() < 60
+                                          ? 'w-6/12'
+                                          : getProgressPercentage() < 70
+                                            ? 'w-7/12'
+                                            : getProgressPercentage() < 80
+                                              ? 'w-8/12'
+                                              : getProgressPercentage() < 90
+                                                ? 'w-9/12'
+                                                : getProgressPercentage() < 100
+                                                  ? 'w-10/12'
+                                                  : 'w-full')
+                          }
                         />
                       </div>
                     </div>

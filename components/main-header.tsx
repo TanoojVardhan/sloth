@@ -23,7 +23,9 @@ export function MainHeader() {
           <Link href="/about" className="font-medium hover:underline">
             About
           </Link>
-          
+          <Link href="/calendar" className="font-medium hover:underline">
+            Calendar
+          </Link>
           {user ? (
             <>
               <Link href="/dashboard" className="font-medium hover:underline">
@@ -51,7 +53,6 @@ export function MainHeader() {
               </Link>
             </>
           )}
-          
           <div className="ml-2 border-l pl-4">
             <ThemeToggle />
           </div>

@@ -1,3 +1,4 @@
+"use client"
 import type { Metadata } from "next"
 import TaskList from "@/components/task-list"
 import Calendar from "@/components/calendar"
@@ -13,14 +14,35 @@ import { SiteFooter } from "@/components/site-footer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Set dynamic rendering for this page
-export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: "Dashboard | Sloth AI Planner",
-  description: "Manage your tasks, schedule, and goals with Sloth AI Planner",
-}
+
+import { useState, useEffect } from "react"
+import { getGoals } from "@/lib/services/goal-service"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function DashboardPage() {
+  const [goals, setGoals] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { user, isLoading: authLoading } = useAuth()
+
+  useEffect(() => {
+    if (!user) {
+      setGoals([])
+      setIsLoading(false)
+      return
+    }
+    setIsLoading(true)
+    getGoals(user.uid)
+      .then((fetchedGoals) => {
+        setGoals(fetchedGoals)
+      })
+      .catch((error) => {
+        console.error("Failed to fetch goals", error)
+        setGoals([])
+      })
+      .finally(() => setIsLoading(false))
+  }, [user])
+
   return (
     <div className="flex min-h-screen flex-col">
       <div className="flex-1">
@@ -45,7 +67,11 @@ export default function DashboardPage() {
                   <TaskList />
                 </TabsContent>
                 <TabsContent value="goals">
-                  <GoalTracker />
+                  {isLoading ? (
+                    <div className="text-center py-6">Loading...</div>
+                  ) : (
+                    <GoalTracker goals={goals} />
+                  )}
                 </TabsContent>
                 <TabsContent value="projects">
                   <ProjectIdeas />
