@@ -1,10 +1,11 @@
 "use client"
 import type React from "react"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { DashboardShell } from "@/components/dashboard-shell"
-import { SiteFooter } from "@/components/site-footer"
+import { DashboardPage } from "@/components/ui/dashboard-page"
+import { FilterBar } from "@/components/ui/filter-bar"
+import { LoadingState, EmptyState } from "@/components/ui/states"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { Target } from "lucide-react"
 
 import { useState, useEffect } from "react"
 import GoalTracker from "@/components/goal-tracker"
@@ -17,6 +18,13 @@ export default function GoalsPage() {
   const [goals, setGoals] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { user, isLoading: authLoading } = useAuth()
+
+  const tabs = [
+    { value: "all", label: "All Goals" },
+    { value: "active", label: "Active Goals" },
+    { value: "completed", label: "Completed" },
+    { value: "archived", label: "Archived" }
+  ]
 
   useEffect(() => {
     if (!user) {
@@ -50,88 +58,106 @@ export default function GoalsPage() {
     }
   };
 
+  const activeGoals = goals.filter(g => g.archived !== true && g.completed !== true)
+  const completedGoals = goals.filter(g => g.archived !== true && g.completed === true)
+  const archivedGoals = goals.filter(g => g.archived === true)
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex-1">
-        <DashboardShell className="container py-6">
-          <DashboardHeader heading="Goals" text="Track and manage your personal and professional goals">
-            <NewItemDialog
-              triggerText="Add Goal"
-              dialogTitle="Create New"
-              triggerVariant="default"
-              triggerClassName="bg-slate-800 hover:bg-slate-700"
+    <DashboardPage 
+      title="Goals" 
+      description="Track and manage your personal and professional goals"
+      headerActions={
+        <NewItemDialog
+          triggerText="Add Goal"
+          dialogTitle="Create New"
+          triggerVariant="default"
+          triggerClassName="bg-slate-800 hover:bg-slate-700"
+        />
+      }
+    >
+      <Tabs defaultValue="all" className="w-full">
+        <FilterBar 
+          tabs={tabs}
+          defaultTab="all"
+          showFilters={false}
+          showSort={false}
+        />
+        <TabsContent value="all">
+          {isLoading ? (
+            <LoadingState rows={3} />
+          ) : goals.length === 0 ? (
+            <EmptyState 
+              title="No goals yet"
+              description="Create your first goal to start tracking your progress"
+              icon={<Target className="h-8 w-8" />}
+              action={{
+                label: "Create Goal",
+                onClick: () => {} // This would trigger the goal dialog
+              }}
             />
-          </DashboardHeader>
-          <Tabs defaultValue="all" className="w-full">
-            <div className="flex items-center justify-between mb-4">
-              <TabsList>
-                <TabsTrigger value="all">All Goals</TabsTrigger>
-                <TabsTrigger value="active">Active Goals</TabsTrigger>
-                <TabsTrigger value="completed">Completed</TabsTrigger>
-                <TabsTrigger value="archived">Archived</TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent value="all" className="mt-0">
+          ) : (
+            <GoalTracker goals={goals} onGoalsChanged={refreshGoals} />
+          )}
+        </TabsContent>
+        
+        <TabsContent value="active">
+          {isLoading ? (
+            <LoadingState rows={3} />
+          ) : activeGoals.length === 0 ? (
+            <EmptyState 
+              title="No active goals"
+              description="Start working on some goals to see them here"
+              icon={<Target className="h-8 w-8" />}
+            />
+          ) : (
+            <GoalTracker goals={activeGoals} onGoalsChanged={refreshGoals} />
+          )}
+        </TabsContent>
+        
+        <TabsContent value="completed">
+          <Card>
+            <CardHeader>
+              <CardTitle>Completed Goals</CardTitle>
+              <CardDescription>Goals you have successfully achieved</CardDescription>
+            </CardHeader>
+            <CardContent>
               {isLoading ? (
-                <div className="text-center py-6">Loading...</div>
-              ) : goals.length === 0 ? (
-                <div className="text-center py-6">No goals found.</div>
+                <LoadingState rows={2} />
+              ) : completedGoals.length === 0 ? (
+                <EmptyState 
+                  title="No completed goals yet"
+                  description="Keep working on your active goals to see them here!"
+                  icon={<Target className="h-8 w-8" />}
+                />
               ) : (
-                <GoalTracker goals={goals} onGoalsChanged={refreshGoals} />
+                <GoalTracker goals={completedGoals} onGoalsChanged={refreshGoals} />
               )}
-            </TabsContent>
-            <TabsContent value="active" className="mt-0">
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="archived">
+          <Card>
+            <CardHeader>
+              <CardTitle>Archived Goals</CardTitle>
+              <CardDescription>Goals you have archived for reference</CardDescription>
+            </CardHeader>
+            <CardContent>
               {isLoading ? (
-                <div className="text-center py-6">Loading...</div>
-              ) : goals.filter(g => g.archived !== true && g.completed !== true).length === 0 ? (
-                <div className="text-center py-6">No active goals found.</div>
+                <LoadingState rows={2} />
+              ) : archivedGoals.length === 0 ? (
+                <EmptyState 
+                  title="No archived goals"
+                  description="Goals you archive will appear here"
+                  icon={<Target className="h-8 w-8" />}
+                />
               ) : (
-                <GoalTracker goals={goals.filter(g => g.archived !== true && g.completed !== true)} onGoalsChanged={refreshGoals} />
+                <GoalTracker goals={archivedGoals} onGoalsChanged={refreshGoals} />
               )}
-            </TabsContent>
-            <TabsContent value="completed" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Completed Goals</CardTitle>
-                  <CardDescription>Goals you have successfully achieved</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="text-center py-6">Loading...</div>
-                  ) : goals.filter(g => g.archived !== true && g.completed === true).length === 0 ? (
-                    <div className="text-center py-6">
-                      <p className="text-slate-500 mb-4">You haven't completed any goals yet.</p>
-                      <p className="text-sm text-slate-400">Keep working on your active goals to see them here!</p>
-                    </div>
-                  ) : (
-                    <GoalTracker goals={goals.filter(g => g.archived !== true && g.completed === true)} onGoalsChanged={refreshGoals} />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="archived" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Archived Goals</CardTitle>
-                  <CardDescription>Goals you have archived for reference</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="text-center py-6">Loading...</div>
-                  ) : goals.filter(g => g.archived === true).length === 0 ? (
-                    <div className="text-center py-6">
-                      <p className="text-slate-500">You don't have any archived goals.</p>
-                    </div>
-                  ) : (
-                    <GoalTracker goals={goals.filter(g => g.archived === true)} onGoalsChanged={refreshGoals} />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </DashboardShell>
-      </div>
-      <SiteFooter />
-    </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </DashboardPage>
   )
 }
