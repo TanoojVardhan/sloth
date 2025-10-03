@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { getTasks } from "@/lib/services/task-service"
 import { getGoals } from "@/lib/services/goal-service"
+import { useGoals } from "@/contexts/goals-context"
 
 interface CalendarItem {
   id: string
@@ -41,6 +42,8 @@ export default function Calendar() {
     endDate: "",
     endTime: "",
   })
+  // Subscribe to goals context for auto-refresh
+  const { goals } = useGoals();
 
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()
@@ -83,19 +86,19 @@ export default function Calendar() {
           dueBefore: lastDayOfCurrentMonth
         });
 
-        // 3. Get goals with due dates in the current month
-        const goalsPromise = getGoals(user.uid, {
-          dueAfter: firstDayOfCurrentMonth,
-          dueBefore: lastDayOfCurrentMonth
+        // 3. Use goals from context (already up-to-date)
+        const goalsResult = goals.filter(goal => {
+          if (!goal.dueDate) return false;
+          const goalDate = new Date(goal.dueDate);
+          return goalDate >= firstDayOfCurrentMonth && goalDate <= lastDayOfCurrentMonth;
         });
 
         // 4. Execute event query
         const eventsPromise = getDocs(eventsQuery);
 
         // 5. Wait for all promises to resolve
-        const [tasksResult, goalsResult, eventsSnapshot] = await Promise.all([
-          tasksPromise, 
-          goalsPromise,
+        const [tasksResult, eventsSnapshot] = await Promise.all([
+          tasksPromise,
           eventsPromise
         ]);
 
@@ -136,7 +139,6 @@ export default function Calendar() {
                 color: getPriorityColor(task.priority),
                 type: 'task'
               });
-              console.log(`Added task to calendar: ${task.title} for date ${taskDate.getDate()}`);
             } else {
               console.error(`Invalid date for task ${task.id}: ${task.dueDate}`);
             }
@@ -145,18 +147,15 @@ export default function Calendar() {
 
         // Process goals
         goalsResult.forEach(goal => {
-          if (goal.dueDate) {
-            const goalDate = new Date(goal.dueDate);
-            
-            calendarItems.push({
-              id: goal.id,
-              title: goal.title,
-              time: "Due",
-              date: goalDate.getDate(),
-              color: "bg-purple-500", // Color for goals
-              type: 'goal'
-            });
-          }
+          const goalDate = new Date(goal.dueDate);
+          calendarItems.push({
+            id: goal.id,
+            title: goal.title,
+            time: "Due",
+            date: goalDate.getDate(),
+            color: "bg-purple-500", // Color for goals
+            type: 'goal'
+          });
         });
 
         // Sort items by date and time
@@ -182,7 +181,7 @@ export default function Calendar() {
     }
 
     fetchCalendarItems()
-  }, [user, currentDate])
+  }, [user, currentDate, goals])
 
   // Helper function to get a color for task priority
   const getPriorityColor = (priority: string): string => {

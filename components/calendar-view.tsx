@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, memo } from "react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
+import { useEvents, Event as GlobalEvent } from "@/contexts/events-context"
 import { db } from "@/lib/firebase"
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore"
 import { Button } from "@/components/ui/button"
@@ -33,23 +34,35 @@ interface Event {
 type CalendarViewType = "month" | "agenda" | "week" | "day"
 
 // Create a component for the individual day cell to prevent unnecessary re-renders
-const DayCell = memo(({ 
-  day, 
+interface DayCellProps {
+  day: number;
+  index: number;
+  currentMonth: number;
+  currentYear: number;
+  today: Date;
+  events: Event[];
+  currentDate: Date;
+  setCurrentDate: React.Dispatch<React.SetStateAction<Date>>;
+  setViewType: React.Dispatch<React.SetStateAction<CalendarViewType>>;
+}
+
+const DayCell = memo(function DayCell({
+  day,
   index,
-  currentMonth, 
-  currentYear, 
+  currentMonth,
+  currentYear,
   today,
   events,
   currentDate,
   setCurrentDate,
   setViewType
-}) => {
+}: DayCellProps) {
   const dayEvents = events.filter((event) => event.date === day);
-  const isCurrentDay = 
-    day === today.getDate() && 
-    currentMonth === today.getMonth() && 
+  const isCurrentDay =
+    day === today.getDate() &&
+    currentMonth === today.getMonth() &&
     currentYear === today.getFullYear();
-  
+
   const isSelectedDay = day === currentDate.getDate() &&
     currentMonth === currentDate.getMonth() &&
     currentYear === currentDate.getFullYear();
@@ -67,12 +80,12 @@ const DayCell = memo(({
     <motion.div
       layoutId={cellLayoutId}
       initial={{ scale: 0.98, opacity: 0.5 }}
-      animate={{ 
-        scale: 1, 
+      animate={{
+        scale: 1,
         opacity: 1,
         backgroundColor: isSelectedDay ? "rgb(30 41 59)" : "transparent",
         color: isSelectedDay ? "white" : "inherit",
-        transition: { 
+        transition: {
           duration: 0.2,
           backgroundColor: { duration: 0.3 }
         }
@@ -106,16 +119,16 @@ const DayCell = memo(({
             key={i}
             layout
             initial={{ opacity: 0, y: 5 }}
-            animate={{ 
-              opacity: 1, 
+            animate={{
+              opacity: 1,
               y: 0,
-              transition: { 
+              transition: {
                 delay: i * 0.05 + 0.1
               }
             }}
             className={cn(
               "text-xs truncate px-1 py-0.5 rounded",
-              event.color.replace("bg-", "bg-opacity-15 text-").replace("-500", "-800"),
+              event.color ? event.color.replace("bg-", "bg-opacity-15 text-").replace("-500", "-800") : ""
             )}
           >
             <div className="flex items-center">
@@ -127,7 +140,7 @@ const DayCell = memo(({
           </motion.div>
         ))}
         {dayEvents.length > 3 && (
-          <motion.div 
+          <motion.div
             layout
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -138,13 +151,27 @@ const DayCell = memo(({
         )}
       </motion.div>
     </motion.div>
-  )
+  );
 });
 
 // Use memo to prevent unnecessary re-renders of the entire CalendarView
 export const CalendarView = memo(function CalendarView() {
-  const [events, setEvents] = useState<Event[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { events: globalEvents, isLoading } = useEvents();
+
+  // Transform global events to local format for calendar rendering
+  const events: Event[] = globalEvents.map(event => {
+    const eventStartDate = new Date(event.startTime);
+    return {
+      id: event.id,
+      title: event.title,
+      time: format(eventStartDate, 'h:mm a'),
+      date: eventStartDate.getDate(),
+      color: getEventColorClass(event.color),
+      startDate: eventStartDate,
+      description: event.description || "",
+      location: event.location || ""
+    };
+  });
   const [viewType, setViewType] = useState<CalendarViewType>("month")
   const [currentDate, setCurrentDate] = useState(new Date())
   const { user } = useAuth()
@@ -195,79 +222,7 @@ export const CalendarView = memo(function CalendarView() {
   const getEventsForDate = useCallback((date: Date) => 
     events.filter((event) => isSameDay(event.startDate, date)), [events]);
   
-  // Fetch events from Firestore using our service
-  useEffect(() => {
-    const fetchEvents = async () => {
-      if (!user) {
-        setIsLoading(false)
-        return
-      }
-      
-      try {
-        setIsLoading(true)
-        
-        // Determine date range based on view type
-        let startDate, endDate;
-        if (viewType === "month") {
-          // For month view, get full month
-          startDate = new Date(currentYear, currentMonth, 1);
-          endDate = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
-        } else if (viewType === "week") {
-          // For week view, get current week
-          startDate = startOfWeek(currentDate);
-          endDate = endOfWeek(currentDate);
-        } else if (viewType === "day") {
-          // For day view, get current day
-          startDate = startOfDay(currentDate);
-          endDate = endOfDay(currentDate);
-        } else {
-          // For agenda view, get full month by default
-          startDate = new Date(currentYear, currentMonth, 1);
-          endDate = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
-        }
-        
-        // To avoid Firestore composite index errors, we'll use only startAfter and filter the results in memory
-        // This is a workaround for the Firebase error about multiple range queries
-        const fetchedServiceEvents = await getEvents(user.uid, {
-          startAfter: new Date(startDate.getFullYear() - 1, startDate.getMonth(), startDate.getDate()),
-          orderByField: "startTime",
-          orderDirection: "asc"
-        });
-        
-        // Filter events client-side to match the date range
-        const filteredEvents = fetchedServiceEvents.filter(event => {
-          const eventStartTime = new Date(event.startTime);
-          const eventEndTime = new Date(event.endTime);
-          
-          // Include events that start before the end date and end after the start date
-          return eventStartTime <= endDate && eventEndTime >= startDate;
-        });
-        
-        // Convert to our local Event format
-        const formattedEvents: Event[] = filteredEvents.map(event => {
-          const eventStartDate = new Date(event.startTime);
-          return {
-            id: event.id,
-            title: event.title,
-            time: format(eventStartDate, 'h:mm a'),
-            date: eventStartDate.getDate(),
-            color: getEventColorClass(event.color),
-            startDate: eventStartDate,
-            description: event.description || "",
-            location: event.location || ""
-          };
-        });
-        
-        setEvents(formattedEvents);
-      } catch (error) {
-        console.error("Error fetching events:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    
-    fetchEvents()
-  }, [user, currentDate, currentMonth, currentYear, viewType])
+  // Events are now provided by context, so no need to fetch here
 
   // Helper function to convert color hex to a Tailwind class
   const getEventColorClass = (colorHex?: string) => {

@@ -12,6 +12,9 @@ import { UserProvider } from "@/contexts/user-context"
 import { AuthProvider } from "@/contexts/auth-context"
 import { MainHeader } from "@/components/main-header"
 import { SiteFooter } from "@/components/site-footer"
+import { EventsProvider } from "@/contexts/events-context"
+import { GoalsProvider } from "@/contexts/goals-context"
+import { TasksProvider } from "@/contexts/tasks-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -32,17 +35,23 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <UserProvider>
-              <AIAssistantProvider>
-                <TaskDialogProvider>
-                  <div className="flex min-h-screen flex-col">
-                    <MainHeader />
-                    <div className="flex-1">{children}</div>
-                    <SiteFooter />
-                  </div>
-                  <PersistentVoiceAssistant />
-                  <Toaster />
-                </TaskDialogProvider>
-              </AIAssistantProvider>
+              <GoalsProvider>
+                <EventsProvider>
+                  <AIAssistantProvider>
+                    <TasksProvider>
+                      <TaskDialogProvider>
+                        <div className="flex min-h-screen flex-col">
+                          <MainHeader />
+                          <div className="flex-1">{children}</div>
+                          <SiteFooter />
+                        </div>
+                        <PersistentVoiceAssistant />
+                        <Toaster />
+                      </TaskDialogProvider>
+                    </TasksProvider>
+                  </AIAssistantProvider>
+                </EventsProvider>
+              </GoalsProvider>
             </UserProvider>
           </ThemeProvider>
         </AuthProvider>

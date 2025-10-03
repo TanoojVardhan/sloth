@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
-import { createGoal, getGoals, updateGoal, deleteGoal } from "@/lib/services/goal-service"
+import { useGoals } from "@/contexts/goals-context"
 
 type Goal = {
   id: string
@@ -25,7 +25,6 @@ type Goal = {
   category?: string
   // ...add other fields as needed
 }
-
 
 interface GoalTrackerProps {
   goals?: any[]
@@ -47,14 +46,12 @@ const mapGoal = (g: any): Goal => {
   };
 };
 
-export default function GoalTracker({ goals: initialGoals = [], onGoalsChanged }: GoalTrackerProps) {
-  const [goals, setGoals] = useState<Goal[]>(initialGoals.map(mapGoal))
-  // If parent provides onGoalsChanged, call it after any create/update/delete
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const { toast } = useToast()
-  const { user } = useAuth()
-  
+
+function GoalTracker(props: GoalTrackerProps) {
+  const { goals, isLoading, addGoal, updateGoalById, deleteGoalById } = useGoals();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   // Form state
   const [newGoal, setNewGoal] = useState({
     title: "",
@@ -63,48 +60,32 @@ export default function GoalTracker({ goals: initialGoals = [], onGoalsChanged }
     targetDate: "",
     category: "",
     progress: 0
-  })
-  
+  });
+
   const handleCreateGoal = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to create goals",
-        variant: "destructive",
-      })
-      return
-    }
     if (!newGoal.title.trim()) {
       toast({
         title: "Error",
         description: "Goal title is required",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      // Save to Firestore
-      await createGoal({
+      await addGoal({
         title: newGoal.title,
         description: newGoal.description,
         category: newGoal.category,
         dueDate: newGoal.targetDate,
         completed: newGoal.status === "completed",
         archived: newGoal.status === "archived",
-        // Add other fields as needed
-      }, user.uid)
-      // Refresh goals from Firestore
-        if (typeof onGoalsChanged === 'function') {
-          onGoalsChanged();
-        } else {
-          const updatedGoals = await getGoals(user.uid)
-          setGoals(updatedGoals.map(mapGoal))
-        }
+        progress: newGoal.progress
+      });
       toast({
         title: "Goal created",
         description: "Your goal has been created successfully",
-      })
+      });
       setNewGoal({
         title: "",
         description: "",
@@ -112,20 +93,20 @@ export default function GoalTracker({ goals: initialGoals = [], onGoalsChanged }
         targetDate: "",
         category: "",
         progress: 0
-      })
-      setIsDialogOpen(false)
+      });
+      setIsDialogOpen(false);
     } catch (error) {
-      console.error("Error creating goal:", error)
+      console.error("Error creating goal:", error);
       toast({
         title: "Error",
         description: "Failed to create goal. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
-  
+  };
+
   return (
     <>
       <Card>
@@ -137,7 +118,9 @@ export default function GoalTracker({ goals: initialGoals = [], onGoalsChanged }
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
-            {goals.length === 0 ? (
+            {isLoading ? (
+              <div className="col-span-2 flex items-center justify-center py-10">Loading...</div>
+            ) : goals.length === 0 ? (
               <Card className="border shadow-sm col-span-2">
                 <CardContent className="p-4 flex flex-col items-center justify-center py-10 text-center">
                   <div className="rounded-full bg-primary/10 p-3 mb-4">
@@ -200,22 +183,15 @@ export default function GoalTracker({ goals: initialGoals = [], onGoalsChanged }
                       <Select
                         value={goal.status}
                         onValueChange={async (value) => {
-                          if (!user) return;
                           try {
-                            await updateGoal(goal.id, {
+                            await updateGoalById(goal.id, {
                               title: goal.title,
                               description: goal.description,
                               category: goal.category,
                               dueDate: goal.targetDate,
                               completed: value === "completed",
                               archived: value === "archived",
-                            }, user.uid);
-                            if (typeof onGoalsChanged === 'function') {
-                              onGoalsChanged();
-                            } else {
-                              const updatedGoals = await getGoals(user.uid);
-                              setGoals(updatedGoals.map(mapGoal));
-                            }
+                            });
                             toast({ title: "Goal updated", description: `Status set to ${value}` });
                           } catch (err) {
                             toast({ title: "Error", description: "Failed to update goal", variant: "destructive" });
@@ -236,21 +212,14 @@ export default function GoalTracker({ goals: initialGoals = [], onGoalsChanged }
                           size="sm"
                           variant="outline"
                           onClick={async () => {
-                            if (!user) return;
                             try {
-                              await updateGoal(goal.id, {
+                              await updateGoalById(goal.id, {
                                 title: goal.title,
                                 description: goal.description,
                                 category: goal.category,
                                 dueDate: goal.targetDate,
                                 completed: true,
-                              }, user.uid);
-                              if (typeof onGoalsChanged === 'function') {
-                                onGoalsChanged();
-                              } else {
-                                const updatedGoals = await getGoals(user.uid);
-                                setGoals(updatedGoals.map(mapGoal));
-                              }
+                              });
                               toast({ title: "Goal marked as done" });
                             } catch (err) {
                               toast({ title: "Error", description: "Failed to mark as done", variant: "destructive" });
@@ -265,21 +234,14 @@ export default function GoalTracker({ goals: initialGoals = [], onGoalsChanged }
                           size="sm"
                           variant="outline"
                           onClick={async () => {
-                            if (!user) return;
                             try {
-                              await updateGoal(goal.id, {
+                              await updateGoalById(goal.id, {
                                 title: goal.title,
                                 description: goal.description,
                                 category: goal.category,
                                 dueDate: goal.targetDate,
                                 completed: false,
-                              }, user.uid);
-                              if (typeof onGoalsChanged === 'function') {
-                                onGoalsChanged();
-                              } else {
-                                const updatedGoals = await getGoals(user.uid);
-                                setGoals(updatedGoals.map(mapGoal));
-                              }
+                              });
                               toast({ title: "Goal marked as active again" });
                             } catch (err) {
                               toast({ title: "Error", description: "Failed to undo complete", variant: "destructive" });
@@ -293,16 +255,9 @@ export default function GoalTracker({ goals: initialGoals = [], onGoalsChanged }
                         size="sm"
                         variant="destructive"
                         onClick={async () => {
-                          if (!user) return;
                           if (!window.confirm("Are you sure you want to delete this goal?")) return;
                           try {
-                            await deleteGoal(goal.id, user.uid);
-                            if (typeof onGoalsChanged === 'function') {
-                              onGoalsChanged();
-                            } else {
-                              const updatedGoals = await getGoals(user.uid);
-                              setGoals(updatedGoals.map(mapGoal));
-                            }
+                            await deleteGoalById(goal.id);
                             toast({ title: "Goal deleted" });
                           } catch (err) {
                             toast({ title: "Error", description: "Failed to delete goal", variant: "destructive" });
@@ -405,5 +360,7 @@ export default function GoalTracker({ goals: initialGoals = [], onGoalsChanged }
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
+
+export default GoalTracker;

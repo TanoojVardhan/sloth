@@ -1,47 +1,33 @@
 /* Dashboard bar width using CSS variable */
+/* Dashboard bar width using CSS variable */
 .dashboard-bar {
   width: var(--bar-width, 100%);
 }
-.dashboard-bar[data-width] {
-  --bar-width: attr(data-width);
-}
+/* Upcoming events bar color using CSS variable */
 /* Upcoming events bar color using CSS variable */
 .upcoming-bar {
-  background-color: var(--bar-color, #3B82F6);
+  background-color: var(--bar-color, #64748B);
 }
-.upcoming-bar[data-color] {
-  --bar-color: attr(data-color color, #3B82F6);
-}
+/* Event list item color and border using CSS variable */
 /* Event list item color and border using CSS variable */
 .event-list-item-border {
   border-color: var(--event-color, #3B82F6) !important;
 }
-.event-list-item-border[data-color] {
-  --event-color: attr(data-color color, #3B82F6);
-}
 .event-list-item-color {
   color: var(--event-color, #3B82F6) !important;
 }
-.event-list-item-color[data-color] {
-  --event-color: attr(data-color color, #3B82F6);
-}
+/* Event dialog color circle using CSS variable */
 /* Event dialog color circle using CSS variable */
 .event-dialog-color {
   background-color: var(--event-dialog-color, #3B82F6);
 }
-.event-dialog-color[data-color] {
-  background-color: attr(data-color color, #3B82F6);
-}
+/* Chart bar and indicator color using CSS variable */
 /* Chart bar and indicator color using CSS variable */
 .chart-bar {
   background-color: var(--chart-color, #3B82F6);
 }
-.chart-bar[data-color] {
-  background-color: attr(data-color color, #3B82F6);
-}
 .chart-indicator {
-  --color-bg: attr(data-color color, #3B82F6);
-  --color-border: attr(data-color color, #3B82F6);
+  /* Set --color-bg and --color-border via style prop in React */
 }
 /* Chart bar and indicator color using CSS variable */
 .chart-bar {

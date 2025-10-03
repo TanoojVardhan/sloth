@@ -12,8 +12,9 @@ import { PersistentVoiceAssistant } from "@/components/persistent-voice-assistan
 import { Toaster } from "@/components/ui/toaster"
 import { UserProvider } from "@/contexts/user-context"
 import { AuthProvider } from "@/contexts/auth-context"
-import { MainHeader } from "@/components/main-header"
-import { SiteFooter } from "@/components/site-footer"
+import { GoalsProvider } from "@/contexts/goals-context"
+import { EventsProvider } from "@/contexts/events-context"
+import { TasksProvider } from "@/contexts/tasks-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -34,19 +35,27 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <UserProvider>
-              <AIAssistantProvider>
-                <TaskDialogProvider>
-                  <EventDialogProvider>
-                    <GoalDialogProvider>
-                      <div className="flex min-h-screen flex-col">
-                        <div className="flex-1">{children}</div>
-                      </div>
-                      <PersistentVoiceAssistant />
-                      <Toaster />
-                    </GoalDialogProvider>
-                  </EventDialogProvider>
-                </TaskDialogProvider>
-              </AIAssistantProvider>
+              <GoalsProvider>
+                <EventsProvider>
+                  <AIAssistantProvider>
+                    <TasksProvider>
+                      <TaskDialogProvider>
+                        <EventDialogProvider>
+                          <GoalDialogProvider>
+                            <div className="flex min-h-screen flex-col">
+                              
+                              <div className="flex-1">{children}</div>
+                              
+                            </div>
+                            <PersistentVoiceAssistant />
+                            <Toaster />
+                          </GoalDialogProvider>
+                        </EventDialogProvider>
+                      </TaskDialogProvider>
+                    </TasksProvider>
+                  </AIAssistantProvider>
+                </EventsProvider>
+              </GoalsProvider>
             </UserProvider>
           </ThemeProvider>
         </AuthProvider>

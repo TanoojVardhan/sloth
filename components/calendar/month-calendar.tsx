@@ -54,7 +54,13 @@ export default function MonthCalendar() {
 
   function openAddEvent(day: Date) {
     setSelectedDate(day)
-    setDialogOpen(true)
+    // Only open if not already open for this date
+    setDialogOpen((prev) => {
+      if (!prev || selectedDate?.getTime() !== day.getTime()) {
+        return true
+      }
+      return prev
+    })
   }
 
   function addEvent(payload: { title: string; time?: string }) {
@@ -124,7 +130,12 @@ export default function MonthCalendar() {
                   role="gridcell"
                   aria-label={`Select ${format(day, "PPPP")}`}
                   aria-current={today ? "date" : undefined}
-                  onClick={() => openAddEvent(day)}
+                  onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openAddEvent(day);
+                  }}
+                  tabIndex={0}
                   className={cn(
                     "h-16 w-full rounded-lg border bg-card p-2 text-left transition-colors",
                     !inCurrent && "text-muted-foreground/60",

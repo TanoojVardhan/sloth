@@ -1,4 +1,9 @@
+"use client"
+
 import Link from "next/link"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Calendar, CheckCircle, Clock, Layout, Target } from "lucide-react"
 import FeatureCard from "@/components/feature-card"
@@ -7,6 +12,20 @@ import { SlothLogo } from "@/components/sloth-logo"
 import { SiteFooter } from "@/components/site-footer"
 
 export default function Home() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, isLoading, router]);
+
+  // Optionally, you can show a loading spinner while checking auth
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
