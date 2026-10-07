@@ -48,7 +48,7 @@ async function download(start: string): Promise<Fetched> {
       continue
     }
     if (res.status === 401 || res.status === 403 || res.status === 404) return { error: "private" }
-    if (!res.ok) return { error: "upstream", message: `The file host returned ${res.status}.` }
+    if (!res.ok) return { error: "upstream", message: `The file host returned ${res.status}. Make sure the link is shared as Anyone with the link can view, and that it is a Google Sheet or an Excel file.` }
     const buf = new Uint8Array(await res.arrayBuffer())
     if (buf.byteLength > MAX_BYTES) return { error: "too_large" }
     return { bytes: buf }
@@ -100,7 +100,16 @@ export async function POST(req: NextRequest) {
   if ("error" in source) return NextResponse.json({ error: "bad_url", message: source.error }, { status: 400 })
 
   try {
-    const got = await download(source.url)
+    let got = await download(source.url)
+    // An uploaded .xlsx opened in Google Sheets can't be exported as CSV (Google
+    // answers 400), but the Excel export works for it. Retry once that way.
+    if ("error" in got && got.error === "upstream" && source.kind === "gsheet") {
+      const alt = source.url.replace("format=csv", "format=xlsx").replace("output=csv", "output=xlsx")
+      if (alt !== source.url) {
+        const retry = await download(alt)
+        if (!("error" in retry) || retry.error !== "upstream") got = retry
+      }
+    }
     if ("error" in got) {
       const status = got.error === "private" ? 403 : got.error === "too_large" ? 413 : 502
       return NextResponse.json({ error: got.error, message: got.message }, { status })
