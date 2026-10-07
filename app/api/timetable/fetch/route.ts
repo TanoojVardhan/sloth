@@ -181,7 +181,34 @@ export async function POST(req: NextRequest) {
             ...c,
             docId: sheetDocId(uid, c.sheetKey ?? ""),
           }))
-    return NextResponse.json({ specializations: parsed.specializations, skipped: parsed.skipped, classes, aiAssisted })
+    let note: string | undefined
+    if (body.specializations != null && classes.length === 0) {
+      const wanted = new Set(body.specializations.map((x) => x.toLowerCase()))
+      const mine = parsed.rows.filter((r) => wanted.has(r.subject.trim().toLowerCase()))
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+      if (mine.length === 0) {
+        note = `None of your picked subjects are in the file any more. Tap Change and choose again.`
+      } else {
+        const pastDated = mine.filter((r) => r.date && r.date < yesterday).length
+        const ended = mine.filter((r) => !r.date && (r.until ?? body.until) && (r.until ?? body.until)! < yesterday).length
+        note = `Found ${mine.length} classes for your choice, but ${pastDated} are dated in the past and ${ended} have already ended, so none are shown.`
+      }
+    }
+    // The picker lists subjects. "specializations" is kept as the field name so
+    // saved data and the Android app keep working; it now holds subject names.
+    const subjectNames: string[] = []
+    const groups: Record<string, string> = {}
+    const seenNames = new Set<string>()
+    for (const r of parsed.rows) {
+      const k = r.subject.trim().toLowerCase()
+      if (!seenNames.has(k)) {
+        seenNames.add(k)
+        subjectNames.push(r.subject.trim())
+      }
+      if (r.specialization && !groups[r.subject.trim()]) groups[r.subject.trim()] = r.specialization
+    }
+    subjectNames.sort((a, b) => a.localeCompare(b))
+    return NextResponse.json({ specializations: subjectNames, groups, skipped: parsed.skipped, classes, aiAssisted, note })
   } catch {
     return NextResponse.json({ error: "upstream", message: "Couldn't read that file. Try again in a moment." }, { status: 502 })
   }

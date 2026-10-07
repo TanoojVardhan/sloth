@@ -10,6 +10,9 @@ export interface SyncResult {
   error?: string
   privateSheet?: boolean
   needsPick?: boolean
+  /** Subjects that appeared in the sheet since the last check and aren't picked. */
+  newSubjects?: string[]
+  groups?: Record<string, string>
   specializations: string[]
   changes: string[]
   skipped: { line: number; reason: string }[]
@@ -31,7 +34,7 @@ async function run(user: User): Promise<SyncResult> {
   if (!user.timetableSheetUrl) return { ...base, error: "No sheet connected yet." }
 
   type Wire = Omit<ClassSlot, "classId"> & { docId?: string }
-  let data: { specializations?: string[]; skipped?: SyncResult["skipped"]; classes?: Wire[]; error?: string; message?: string }
+  let data: { specializations?: string[]; skipped?: SyncResult["skipped"]; classes?: Wire[]; error?: string; message?: string; note?: string; groups?: Record<string, string> }
   try {
     const token = await auth.currentUser?.getIdToken()
     const res = await fetch("/api/timetable/fetch", {
@@ -59,10 +62,20 @@ async function run(user: User): Promise<SyncResult> {
   }
 
   const options = data.specializations ?? []
-  const result: SyncResult = { ...base, ok: true, specializations: options, skipped: data.skipped ?? [] }
+  const result: SyncResult = { ...base, ok: true, specializations: options, skipped: data.skipped ?? [], groups: data.groups }
+  const before = new Set((user.timetableOptions ?? []).map((o) => o.toLowerCase()))
+  const mine = new Set((user.specializations ?? []).map((o) => o.toLowerCase()))
+  if (before.size > 0 && user.specializations !== undefined) {
+    const fresh = options.filter((o) => !before.has(o.toLowerCase()) && !mine.has(o.toLowerCase()))
+    if (fresh.length) result.newSubjects = fresh
+  }
 
   // Make students choose: nothing is imported until they pick their specialization(s).
-  if (options.length > 0 && user.specializations === undefined) {
+  const optionSet = new Set(options.map((o) => o.toLowerCase()))
+  const picked = user.specializations
+  // Also ask again when none of the saved choices exist in this file any more.
+  const stalePick = picked !== undefined && picked.length > 0 && !picked.some((x) => optionSet.has(x.toLowerCase()))
+  if (options.length > 0 && (picked === undefined || stalePick)) {
     // Nothing from an earlier sheet should linger while the student chooses.
     const cleared = await syncSheetClasses(user.userId, [])
     if (cleared.removed.length) await mutate("classes")
@@ -73,6 +86,7 @@ async function run(user: User): Promise<SyncResult> {
   const desired = (data.classes ?? []).map(({ docId: _docId, ...c }) => c)
   const diff = await syncSheetClasses(user.userId, desired)
   result.imported = desired.length
+  if (!desired.length && data.note) result.error = data.note
 
   const firstImport = diff.added.length === desired.length && diff.updated.length === 0 && diff.removed.length === 0
   if (!firstImport) {

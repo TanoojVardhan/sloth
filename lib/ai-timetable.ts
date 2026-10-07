@@ -78,9 +78,11 @@ Return every class occurrence as one item:
 - start, end: 24-hour HH:MM. Work out the end time from the next slot or the slot's stated range. If a class spans several slots, use the first start and last end.
 - subject: the course name only, without room or teacher
 - room, teacher: only if the sheet says so, else ""
-- specialization: the section / branch / specialization / class group this timetable is for (from a heading, sheet, or column). If the file has just one and names none, use "".
-- date: YYYY-MM-DD only for a one-off class on a specific date, else ""
-- until: YYYY-MM-DD only if the sheet says the timetable ends on a date, else ""
+- specialization: the elective track or stream a class belongs to (for an MBA: Finance, Marketing, HR, Business Analytics, Operations and so on), taken from a heading, tab name, column, or the subject itself. A student picks one track and sees only its subjects, so list each track's subjects under that track's name.
+  Subjects every student takes (core subjects, common classes) get specialization "".
+  NEVER use the degree or programme name (MBA, BBA, PGDM, B.Tech...), the college, the year, the semester or the section letter as a specialization, unless the file truly has nothing else to separate the subjects by; in that case use "".
+- date: YYYY-MM-DD only for a genuine one-off class or a change on a specific date. Dates printed in a weekly grid's column headings only label the days of that week: they do NOT make the class one-off. Treat the grid as a repeating weekly timetable (date "") unless the sheet clearly says a class happens once.
+- until: YYYY-MM-DD only if the sheet states a last day for the timetable or class, else ""
 - status: "Cancelled" only if explicitly marked cancelled, else ""
 
 Rules: skip breaks, lunch, free periods, assemblies and blank cells. Never invent classes, rooms or teachers.
@@ -112,7 +114,7 @@ export async function aiNormalizeTimetable(bytes: Uint8Array, grids: string[][][
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return { error: "no_key" }
 
-  const hash = createHash("sha256").update(bytes).digest("hex")
+  const hash = createHash("sha256").update("v2").update(bytes).digest("hex")
   const hit = cache.get(hash)
   if (hit) return { table: hit }
 

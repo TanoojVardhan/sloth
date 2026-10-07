@@ -299,10 +299,10 @@ function colorFor(subject: string): string {
 }
 
 export function sheetKey(r: SheetRow): string {
-  return [r.specialization.toLowerCase(), r.date ?? "weekly", r.dayOfWeek, r.startTime, r.endTime, r.subject.toLowerCase()].join("|")
+  return [r.date ?? "weekly", r.dayOfWeek, r.startTime, r.endTime, r.subject.toLowerCase()].join("|")
 }
 
-/** Rows for the chosen specializations (plus rows with no specialization = everyone). */
+/** Rows for the subjects the student picked (matched by name, ignoring case). */
 export function rowsToClasses(
   rows: SheetRow[],
   selected: string[],
@@ -310,13 +310,13 @@ export function rowsToClasses(
   globalUntil: string | null = null,
   today = new Date(),
 ): Omit<ClassSlot, "classId">[] {
-  const wanted = new Set(selected.map((s) => s.toLowerCase()))
+  const wanted = new Set(selected.map((s) => s.trim().toLowerCase()))
   const cutoff = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
   const iso = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}`
   const seen = new Set<string>()
   const out: Omit<ClassSlot, "classId">[] = []
   for (const r of rows) {
-    if (r.specialization && !wanted.has(r.specialization.toLowerCase())) continue
+    if (!wanted.has(r.subject.trim().toLowerCase())) continue
     if (r.date && r.date < iso) continue // old one-off changes are noise
     const until = r.date ? null : (r.until ?? globalUntil)
     if (until && until < iso) continue // the timetable has already ended

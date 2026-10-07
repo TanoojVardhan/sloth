@@ -28,7 +28,13 @@ export function TimetableSheetPanel() {
 
   const url = user?.timetableSheetUrl ?? ""
   const options = last?.specializations.length ? last.specializations : (user?.timetableOptions ?? [])
-  const needsPick = !!url && user?.specializations === undefined && options.length > 0
+  const picked = user?.specializations
+  const stalePick =
+    picked !== undefined &&
+    picked.length > 0 &&
+    options.length > 0 &&
+    !picked.some((x) => options.some((o) => o.toLowerCase() === x.toLowerCase()))
+  const needsPick = !!url && (picked === undefined || stalePick) && options.length > 0
 
   useEffect(() => {
     const onSynced = (e: Event) => {
@@ -98,13 +104,16 @@ export function TimetableSheetPanel() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">Specialization:</span>
+          <span className="text-xs text-muted-foreground">Your subjects:</span>
           {chosen.length ? (
-            chosen.map((s) => (
-              <span key={s} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                {s}
-              </span>
-            ))
+            <>
+              {chosen.slice(0, 6).map((s) => (
+                <span key={s} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                  {s}
+                </span>
+              ))}
+              {chosen.length > 6 && <span className="text-xs text-muted-foreground">+{chosen.length - 6} more</span>}
+            </>
           ) : (
             <span className="text-xs text-muted-foreground">none chosen</span>
           )}
@@ -119,6 +128,36 @@ export function TimetableSheetPanel() {
           <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{last.error}</span>
+          </div>
+        )}
+
+        {last?.newSubjects && last.newSubjects.length > 0 && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+            <p className="font-medium">
+              {last.newSubjects.length} new subject{last.newSubjects.length === 1 ? "" : "s"} in your sheet
+            </p>
+            <p className="mt-0.5 text-muted-foreground">
+              {last.newSubjects.slice(0, 4).join(", ")}
+              {last.newSubjects.length > 4 ? ` and ${last.newSubjects.length - 4} more` : ""}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button
+                size="sm"
+                onClick={async () => {
+                  await updateUser(user.userId, { specializations: [...chosen, ...(last.newSubjects ?? [])] })
+                  await refreshUser()
+                  setLast((l) => (l ? { ...l, newSubjects: [] } : l))
+                }}
+              >
+                Add {last.newSubjects.length === 1 ? "it" : "them"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowPick(true)}>
+                Review
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setLast((l) => (l ? { ...l, newSubjects: [] } : l))}>
+                Not now
+              </Button>
+            </div>
           </div>
         )}
 
@@ -151,6 +190,7 @@ export function TimetableSheetPanel() {
       <PickDialog
         open={showPick}
         options={options}
+        groups={last?.groups ?? {}}
         initial={chosen}
         forced={needsPick}
         onClose={() => setShowPick(false)}
@@ -204,7 +244,7 @@ function ConnectDialog({
     setError(null)
     try {
       const changed = value.trim() !== initialUrl
-      // A different sheet may use different specialization names, so ask again.
+      // A different sheet has different subjects, so ask again.
       await updateUser(user.userId, {
         timetableSheetUrl: value.trim(),
         timetableUntil: (until || deleteField()) as unknown as string,
@@ -247,7 +287,7 @@ function ConnectDialog({
           <div className="rounded-lg border bg-muted/40 p-3 text-xs">
             <p className="font-medium">Columns the first row should have</p>
             <p className="mt-1 text-muted-foreground">
-              Specialization, Day, Start, End, Subject, Room, Teacher, and optionally Date, Until and Status. Leave Specialization empty for classes everyone attends.
+              Day, Start, End, Subject, and optionally Room, Teacher, Date, Until, Status and a group column (Specialization). Any other layout is read by AI.
               A row with a Date changes only that day, and Status &quot;Cancelled&quot; cancels it.
             </p>
             <Button type="button" variant="outline" size="sm" className="mt-2 gap-2" onClick={() => void copyTemplate()}>
@@ -295,6 +335,7 @@ function ConnectDialog({
 function PickDialog({
   open,
   options,
+  groups,
   initial,
   forced,
   onClose,
@@ -303,6 +344,7 @@ function PickDialog({
 }: {
   open: boolean
   options: string[]
+  groups: Record<string, string>
   initial: string[]
   forced: boolean
   onClose: () => void
@@ -312,11 +354,23 @@ function PickDialog({
   const [picked, setPicked] = useState<string[]>(initial)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState("")
 
   useEffect(() => {
-    if (open) setPicked(initial)
+    if (open) {
+      setPicked(initial)
+      setQuery("")
+    }
   }, [open, initial])
 
+  const visible = options.filter((o) => o.toLowerCase().includes(query.trim().toLowerCase()))
+  // Group headings only help when the sheet names more than one group.
+  const groupNames = Array.from(new Set(visible.map((o) => groups[o] ?? "")))
+  const useGroups = new Set(options.map((o) => groups[o] ?? "")).size > 1
+  const sections = useGroups ? groupNames : [""]
+  const inSection = (g: string) => (useGroups ? visible.filter((o) => (groups[o] ?? "") === g) : visible)
+  const setMany = (list: string[], on: boolean) =>
+    setPicked((p) => (on ? Array.from(new Set([...p, ...list])) : p.filter((x) => !list.includes(x))))
   const toggle = (s: string) => setPicked((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]))
 
   return (
@@ -327,33 +381,65 @@ function PickDialog({
         onEscapeKeyDown={(e) => forced && e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Pick your specialization</DialogTitle>
+          <DialogTitle>Pick your subjects</DialogTitle>
           <DialogDescription>
-            Your sheet has timetables for several groups. Choose the ones you follow. Pick more than one if you take electives from another group.
+            Tick every subject you attend. Only those classes show in your timetable and widgets.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          {options.map((o) => {
-            const on = picked.includes(o)
-            return (
-              <button
-                key={o}
-                type="button"
-                role="checkbox"
-                aria-checked={on}
-                onClick={() => toggle(o)}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm font-medium transition-colors",
-                  on ? "border-primary bg-primary/10" : "hover:bg-muted/60",
-                )}
-              >
-                <span className={cn("flex h-5 w-5 items-center justify-center rounded border text-xs", on ? "border-primary bg-primary text-primary-foreground" : "")}>
-                  {on ? "✓" : ""}
-                </span>
-                {o}
-              </button>
-            )
-          })}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search subjects" aria-label="Search subjects" />
+            <Button type="button" variant="outline" size="sm" onClick={() => setMany(visible, true)}>
+              Select all
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setPicked([])}>
+              Clear
+            </Button>
+          </div>
+          <div className="max-h-[50vh] space-y-3 overflow-y-auto pr-1">
+            {visible.length === 0 && <p className="text-sm text-muted-foreground">No subject matches that search.</p>}
+            {sections.map((g) => {
+              const list = inSection(g)
+              if (!list.length) return null
+              return (
+                <div key={g || "all"} className="space-y-2">
+                  {useGroups && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-muted-foreground">{g || "Common subjects"}</p>
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-primary hover:underline"
+                        onClick={() => setMany(list, !list.every((o) => picked.includes(o)))}
+                      >
+                        {list.every((o) => picked.includes(o)) ? "Untick group" : "Tick group"}
+                      </button>
+                    </div>
+                  )}
+                  {list.map((o) => {
+                    const on = picked.includes(o)
+                    return (
+                      <button
+                        key={o}
+                        type="button"
+                        role="checkbox"
+                        aria-checked={on}
+                        onClick={() => toggle(o)}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm font-medium transition-colors",
+                          on ? "border-primary bg-primary/10" : "hover:bg-muted/60",
+                        )}
+                      >
+                        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs", on ? "border-primary bg-primary text-primary-foreground" : "")}>
+                          {on ? "✓" : ""}
+                        </span>
+                        {o}
+                      </button>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter className="gap-2 sm:justify-between">
@@ -380,7 +466,7 @@ function PickDialog({
               }
             }}
           >
-            {saving ? "Saving..." : "Save and show my timetable"}
+            {saving ? "Saving..." : `Show my timetable (${picked.length})`}
           </Button>
         </DialogFooter>
       </DialogContent>
