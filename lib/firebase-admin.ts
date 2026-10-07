@@ -1,5 +1,6 @@
-import admin from "firebase-admin"
-import { getApps } from "firebase-admin/app"
+import { cert, getApps, initializeApp } from "firebase-admin/app"
+import { getAuth } from "firebase-admin/auth"
+import { getFirestore } from "firebase-admin/firestore"
 import { readFileSync, existsSync } from "fs"
 import { join } from "path"
 
@@ -11,14 +12,14 @@ if (!getApps().length) {
 
     if (serviceAccountPath) {
       // Load service account from file
-      const fullPath = join(process.cwd(), serviceAccountPath)
-      
+      const fullPath = join(/* turbopackIgnore: true */ process.cwd(), serviceAccountPath)
+
       // Check if file exists before trying to read it
       if (existsSync(fullPath)) {
         const serviceAccount = JSON.parse(readFileSync(fullPath, "utf8"))
 
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
+        initializeApp({
+          credential: cert(serviceAccount),
           projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
         })
 
@@ -27,16 +28,16 @@ if (!getApps().length) {
         console.warn("⚠️ Service account file not found. Google Calendar features will not work.")
         console.warn(`   Expected path: ${fullPath}`)
         console.warn("   Download it from Firebase Console → Project Settings → Service Accounts")
-        
+
         // Initialize with default credentials (limited functionality)
-        admin.initializeApp({
+        initializeApp({
           projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
         })
       }
     } else {
       // Fallback: Initialize with application default credentials (for production)
       // This works in Google Cloud environments (Cloud Functions, Cloud Run, etc.)
-      admin.initializeApp({
+      initializeApp({
         projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
       })
 
@@ -46,15 +47,15 @@ if (!getApps().length) {
     console.error("❌ Firebase Admin initialization error:", error)
     // Don't throw - allow app to continue without Calendar features
     // Initialize with basic config as fallback
-    admin.initializeApp({
+    initializeApp({
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     })
   }
 }
 
 // Export Firestore and Auth instances
-export const adminDb = admin.firestore()
-export const adminAuth = admin.auth()
+export const adminDb = getFirestore()
+export const adminAuth = getAuth()
 
 // Helper function to verify Firebase ID token
 export async function verifyIdToken(idToken: string) {
@@ -65,4 +66,20 @@ export async function verifyIdToken(idToken: string) {
     console.error("Token verification error:", error)
     return { success: false, error: "Invalid or expired token" }
   }
+}
+
+// Shared helper for API routes: pulls the Firebase ID token out of the
+// Authorization header and verifies it, returning the uid or throwing a
+// Response the caller can return directly.
+export async function requireUid(req: Request): Promise<string> {
+  const authHeader = req.headers.get("authorization")
+  if (!authHeader) {
+    throw new Response(JSON.stringify({ error: "No authorization token provided" }), { status: 401 })
+  }
+  const idToken = authHeader.replace("Bearer ", "")
+  const verification = await verifyIdToken(idToken)
+  if (!verification.success || !verification.uid) {
+    throw new Response(JSON.stringify({ error: verification.error || "Authentication failed" }), { status: 401 })
+  }
+  return verification.uid
 }

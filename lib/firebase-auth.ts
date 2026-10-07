@@ -4,6 +4,8 @@ import {
   signOut,
   signInWithPopup,
   GoogleAuthProvider,
+  EmailAuthProvider,
+  linkWithCredential,
   onAuthStateChanged,
   type User as FirebaseUser,
 } from "firebase/auth"
@@ -116,4 +118,31 @@ export function onAuthStateChange(callback: (user: FirebaseUser | null) => void)
 
 export function getCurrentUser(): FirebaseUser | null {
   return auth.currentUser
+}
+
+export function hasPasswordProvider(): boolean {
+  const firebaseUser = auth.currentUser
+  if (!firebaseUser) return false
+  return firebaseUser.providerData.some((p) => p.providerId === "password")
+}
+
+// Adds an email/password credential to the CURRENT account (e.g. one that
+// was created via Google Sign-In) without creating a second account. This
+// lets the same account also sign in with email/password elsewhere, such as
+// the Android app, which doesn't support Google Sign-In yet.
+export async function addPasswordToAccount(password: string): Promise<void> {
+  const firebaseUser = auth.currentUser
+  if (!firebaseUser || !firebaseUser.email) {
+    throw { code: "AUTH_ERROR", message: "You need to be signed in to set a password." }
+  }
+  try {
+    const credential = EmailAuthProvider.credential(firebaseUser.email, password)
+    await linkWithCredential(firebaseUser, credential)
+  } catch (error) {
+    const err = error as { code?: string; message?: string }
+    throw {
+      code: err.code || "AUTH_ERROR",
+      message: err.message || "Couldn't set a password",
+    }
+  }
 }

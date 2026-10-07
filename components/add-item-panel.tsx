@@ -12,6 +12,7 @@ import { useAuth } from "@/components/auth-provider"
 import { MicInput } from "./mic-input"
 import { Calendar, Tag, Plus, Loader2 } from "lucide-react"
 import type { TaskPriority } from "@/types/entities"
+import { auth } from "@/lib/firebase"
 
 type ItemType = "task" | "event" | "goal"
 
@@ -30,6 +31,39 @@ export function AddItemPanel({ initialType }: { initialType?: ItemType }) {
   const { createGoal } = useGoals()
   const { user, loading } = useAuth()
 
+  // Function to auto-sync to Google Calendar
+  async function syncToGoogleCalendar(title: string, startDateTime: string, endDateTime?: string) {
+    try {
+      const firebaseUser = auth.currentUser
+      if (!firebaseUser) return
+
+      const idToken = await firebaseUser.getIdToken()
+
+      // Create the event on the user's primary Google Calendar. If Google
+      // Calendar isn't connected, this 403s and we skip it silently —
+      // syncing is a bonus, not something that should block saving locally.
+      const eventEndTime = endDateTime || new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000).toISOString()
+
+      await fetch("/api/calendar/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          calendarId: "primary",
+          summary: title,
+          startDateTime: startDateTime,
+          endDateTime: eventEndTime,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
+      })
+    } catch (error) {
+      console.error("Failed to sync to Google Calendar:", error)
+      // Don't throw - we don't want to fail the main operation
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!user || !title.trim()) return
@@ -45,6 +79,11 @@ export function AddItemPanel({ initialType }: { initialType?: ItemType }) {
           dueDate: date || null,
           projectId: null,
         })
+
+        // Auto-sync task to Google Calendar if it has a due date
+        if (date) {
+          await syncToGoogleCalendar(title.trim(), date)
+        }
       } else if (type === "event") {
         // Use Firebase for events
         await createEvent({
@@ -54,6 +93,11 @@ export function AddItemPanel({ initialType }: { initialType?: ItemType }) {
           location: location.trim() || null,
           projectId: null,
         })
+
+        // Auto-sync event to Google Calendar
+        if (date) {
+          await syncToGoogleCalendar(title.trim(), date)
+        }
       } else {
         // Use Firebase for goals
         await createGoal({
@@ -66,6 +110,11 @@ export function AddItemPanel({ initialType }: { initialType?: ItemType }) {
             .map((s) => s.trim())
             .filter(Boolean),
         })
+
+        // Auto-sync goal to Google Calendar if it has a target date
+        if (date) {
+          await syncToGoogleCalendar(title.trim(), date)
+        }
       }
 
       // Reset form
@@ -133,19 +182,19 @@ export function AddItemPanel({ initialType }: { initialType?: ItemType }) {
             <SelectContent>
               <SelectItem value="low">
                 <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                  <span className="h-2 w-2 rounded-full bg-chart-1"></span>
                   Low
                 </span>
               </SelectItem>
               <SelectItem value="medium">
                 <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
+                  <span className="h-2 w-2 rounded-full bg-warning"></span>
                   Medium
                 </span>
               </SelectItem>
               <SelectItem value="high">
                 <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                  <span className="h-2 w-2 rounded-full bg-destructive"></span>
                   High
                 </span>
               </SelectItem>

@@ -1,4 +1,4 @@
-import type { Event, Project, Task, Goal, ID } from "@/types/entities"
+import type { Event, Project, Task, Goal, Note, ClassSlot, Assignment, ID } from "@/types/entities"
 import { getCurrentUser } from "./firebase-auth"
 import * as db from "./firebase-db"
 
@@ -6,10 +6,8 @@ import * as db from "./firebase-db"
 function getUserId(): ID {
   const user = getCurrentUser()
   if (!user) {
-    console.error("User not authenticated - getCurrentUser returned null")
     throw { code: "UNAUTHORIZED", message: "User not authenticated" }
   }
-  console.log("Current user ID:", user.uid)
   return user.uid
 }
 
@@ -21,6 +19,9 @@ export const swrFetcher = async (key: string) => {
   if (key === "events") return db.getEvents(userId)
   if (key === "projects") return db.getProjects(userId)
   if (key === "goals") return db.getGoals(userId)
+  if (key === "notes") return db.getNotes(userId)
+  if (key === "classes") return db.getClasses(userId)
+  if (key === "assignments") return db.getAssignments(userId)
   if (key.startsWith("projects/")) {
     const parts = key.split("/")
     if (parts.length === 3 && parts[2] === "tasks") {
@@ -39,12 +40,9 @@ export const api = {
   async getTasks(): Promise<Task[]> {
     try {
       const userId = getUserId()
-      console.log("Fetching tasks for user:", userId)
       const tasks = await db.getTasks(userId)
-      console.log("Retrieved tasks:", tasks.length)
       return tasks
     } catch (error) {
-      console.error("Error fetching tasks:", error)
       const err = error as { code?: string; message?: string }
       throw { code: err.code || "ERROR", message: err.message || "Failed to get tasks" }
     }
@@ -92,12 +90,9 @@ export const api = {
   async getEvents(): Promise<Event[]> {
     try {
       const userId = getUserId()
-      console.log("Fetching events for user:", userId)
       const events = await db.getEvents(userId)
-      console.log("Retrieved events:", events.length)
       return events
     } catch (error) {
-      console.error("Error fetching events:", error)
       const err = error as { code?: string; message?: string }
       throw { code: err.code || "ERROR", message: err.message || "Failed to get events" }
     }
@@ -185,12 +180,9 @@ export const api = {
   async getGoals(): Promise<Goal[]> {
     try {
       const userId = getUserId()
-      console.log("Fetching goals for user:", userId)
       const goals = await db.getGoals(userId)
-      console.log("Retrieved goals:", goals.length)
       return goals
     } catch (error) {
-      console.error("Error fetching goals:", error)
       const err = error as { code?: string; message?: string }
       throw { code: err.code || "ERROR", message: err.message || "Failed to get goals" }
     }
@@ -222,5 +214,72 @@ export const api = {
       const err = error as { code?: string; message?: string }
       throw { code: err.code || "ERROR", message: err.message || "Failed to delete goal" }
     }
+  },
+
+  // notes
+  async getNotes(): Promise<Note[]> {
+    try {
+      return await db.getNotes(getUserId())
+    } catch (error) {
+      const err = error as { code?: string; message?: string }
+      throw { code: err.code || "ERROR", message: err.message || "Failed to get notes" }
+    }
+  },
+
+  async createNote(note: Omit<Note, "noteId" | "createdAt" | "updatedAt">): Promise<ID> {
+    try {
+      return await db.createNote(getUserId(), note)
+    } catch (error) {
+      const err = error as { code?: string; message?: string }
+      throw { code: err.code || "ERROR", message: err.message || "Failed to create note" }
+    }
+  },
+
+  async updateNote(noteId: ID, updates: Partial<Omit<Note, "noteId" | "createdAt" | "updatedAt">>): Promise<void> {
+    try {
+      await db.updateNote(noteId, updates)
+    } catch (error) {
+      const err = error as { code?: string; message?: string }
+      throw { code: err.code || "ERROR", message: err.message || "Failed to update note" }
+    }
+  },
+
+  async deleteNote(noteId: ID): Promise<void> {
+    try {
+      await db.deleteNote(noteId)
+    } catch (error) {
+      const err = error as { code?: string; message?: string }
+      throw { code: err.code || "ERROR", message: err.message || "Failed to delete note" }
+    }
+  },
+  // timetable
+  async getClasses(): Promise<ClassSlot[]> {
+    return db.getClasses(getUserId())
+  },
+  async createClass(c: Omit<ClassSlot, "classId">): Promise<ID> {
+    return db.createClass(getUserId(), c)
+  },
+  async updateClass(classId: ID, updates: Partial<Omit<ClassSlot, "classId">>): Promise<void> {
+    await db.updateClass(classId, updates)
+  },
+  async deleteClass(classId: ID): Promise<void> {
+    await db.deleteClass(classId)
+  },
+
+  // assignments & exams
+  async getAssignments(): Promise<Assignment[]> {
+    return db.getAssignments(getUserId())
+  },
+  async createAssignment(a: Omit<Assignment, "assignmentId" | "createdAt" | "updatedAt">): Promise<ID> {
+    return db.createAssignment(getUserId(), a)
+  },
+  async updateAssignment(
+    assignmentId: ID,
+    updates: Partial<Omit<Assignment, "assignmentId" | "createdAt" | "updatedAt">>,
+  ): Promise<void> {
+    await db.updateAssignment(assignmentId, updates)
+  },
+  async deleteAssignment(assignmentId: ID): Promise<void> {
+    await db.deleteAssignment(assignmentId)
   },
 }

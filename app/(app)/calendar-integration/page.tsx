@@ -1,19 +1,46 @@
+"use client"
+
+import { Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import GoogleCalendarScheduler from "@/components/google-calendar-scheduler"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent } from "@/components/ui/card"
-import { CalendarCheck, Sparkles, Zap, Shield } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CalendarCheck, Sparkles, Zap, Shield, CheckCircle2, AlertCircle } from "lucide-react"
+
+function OAuthCallbackBanner() {
+  const searchParams = useSearchParams()
+  const status = searchParams.get("status")
+  const message = searchParams.get("message")
+
+  if (!status) return null
+
+  return (
+    <Alert variant={status === "error" ? "destructive" : "default"}>
+      {status === "error" ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+      <AlertDescription>
+        {status === "error"
+          ? message || "Something went wrong connecting your Google Calendar."
+          : "Google Calendar connected successfully."}
+      </AlertDescription>
+    </Alert>
+  )
+}
 
 export default function CalendarIntegrationPage() {
   return (
-    <div className="container mx-auto space-y-8 py-8">
+    <div className="space-y-8">
       <PageHeader
         icon={CalendarCheck}
         title="Google Calendar"
-        description="Seamlessly connect your Google Calendar and create events directly from Sloth Planner with AI-powered scheduling"
-        gradient="from-blue-600 via-indigo-600 to-purple-600"
+        description="Connect your Google Calendar to automatically sync tasks and events from Sloth Planner"
       />
 
-      {/* Main Scheduler Component */}
+      <Suspense fallback={null}>
+        <OAuthCallbackBanner />
+      </Suspense>
+
+      {/* Main Connection Component */}
       <GoogleCalendarScheduler />
 
       {/* Features Section */}
@@ -23,9 +50,9 @@ export default function CalendarIntegrationPage() {
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
               <CalendarCheck className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="mb-2 font-semibold">Quick Sync</h3>
+            <h3 className="mb-2 font-semibold">Auto-Sync</h3>
             <p className="text-sm text-muted-foreground">
-              Create calendar events instantly without switching apps
+              Tasks and events automatically sync to your Google Calendar
             </p>
           </CardContent>
         </Card>
@@ -35,9 +62,9 @@ export default function CalendarIntegrationPage() {
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
               <Sparkles className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="mb-2 font-semibold">AI Ready</h3>
+            <h3 className="mb-2 font-semibold">Seamless</h3>
             <p className="text-sm text-muted-foreground">
-              Perfect for AI-powered task scheduling and automation
+              No manual event creation needed - it happens automatically
             </p>
           </CardContent>
         </Card>
@@ -94,8 +121,8 @@ export default function CalendarIntegrationPage() {
               3
             </span>
             <span>
-              <strong className="text-foreground">Create Events:</strong> Fill in the event details (title,
-              description, date/time) and submit.
+              <strong className="text-foreground">Create Tasks & Events:</strong> Use the Quick Add panel on the dashboard
+              to create tasks and events with dates.
             </span>
           </li>
           <li className="flex gap-3">
@@ -103,15 +130,15 @@ export default function CalendarIntegrationPage() {
               4
             </span>
             <span>
-              <strong className="text-foreground">Instant Sync:</strong> The event is created in your Google
-              Calendar and you&apos;ll receive a confirmation with a link to view it.
+              <strong className="text-foreground">Automatic Sync:</strong> They automatically appear in your Google
+              Calendar - no manual event creation needed!
             </span>
           </li>
         </ol>
       </div>
 
       {/* Setup Instructions */}
-      <div className="mx-auto max-w-3xl space-y-4 rounded-lg border border-orange-200 bg-orange-50 p-6 dark:border-orange-900 dark:bg-orange-950/20">
+      <div className="mx-auto max-w-3xl space-y-4 rounded-lg border border-warning/30 bg-warning/10 p-6">
         <h2 className="text-2xl font-bold">Setup Required</h2>
         <div className="space-y-3 text-sm">
           <p>

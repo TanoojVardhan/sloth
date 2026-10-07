@@ -4,11 +4,11 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
 import { ChatbotWidget } from "@/components/chatbot-widget"
 import { Suspense } from "react"
 import { AuthProvider } from "@/components/auth-provider"
+import { ThemeProvider } from "@/components/theme-provider"
+import { AppChrome } from "@/components/app-chrome"
 
 export const metadata: Metadata = {
   title: "Sloth Planner - Your Smart Planning Assistant",
@@ -30,16 +30,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
-        <Suspense fallback={<div>Loading...</div>}>
-          <AuthProvider>
-            <SiteHeader />
-            <main className="min-h-[70vh]">{children}</main>
-            <SiteFooter />
-            <ChatbotWidget />
-          </AuthProvider>
-        </Suspense>
-        <Analytics />
+      <body
+        className={`font-sans ${GeistSans.variable} ${GeistMono.variable} flex flex-col min-h-screen`}
+        suppressHydrationWarning
+      >
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <Suspense fallback={<div>Loading...</div>}>
+            <AuthProvider>
+              <AppChrome>{children}</AppChrome>
+              <ChatbotWidget />
+            </AuthProvider>
+          </Suspense>
+          <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   )

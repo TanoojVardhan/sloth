@@ -99,13 +99,13 @@ export function FullCalendar({ compact = false }: { compact?: boolean }) {
                   {hasItems && (
                     <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
                       {counts.event ? (
-                        <span className="h-1 w-1 rounded-full bg-blue-500" title="Events" />
+                        <span className="h-1 w-1 rounded-full bg-primary" title="Events" />
                       ) : null}
                       {counts.task ? (
-                        <span className="h-1 w-1 rounded-full bg-orange-500" title="Tasks" />
+                        <span className="h-1 w-1 rounded-full bg-warning" title="Tasks" />
                       ) : null}
                       {counts.goal ? (
-                        <span className="h-1 w-1 rounded-full bg-purple-500" title="Goals" />
+                        <span className="h-1 w-1 rounded-full bg-chart-2" title="Goals" />
                       ) : null}
                     </div>
                   )}
@@ -119,15 +119,15 @@ export function FullCalendar({ compact = false }: { compact?: boolean }) {
       {!compact && (
         <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+            <span className="h-2 w-2 rounded-full bg-primary"></span>
             <span>Events</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-orange-500"></span>
+            <span className="h-2 w-2 rounded-full bg-warning"></span>
             <span>Tasks</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-purple-500"></span>
+            <span className="h-2 w-2 rounded-full bg-chart-2"></span>
             <span>Goals</span>
           </div>
         </div>

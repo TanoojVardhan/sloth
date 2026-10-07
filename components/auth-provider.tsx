@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { onAuthStateChange, signInWithEmail, signInWithGoogle, signOutUser } from "@/lib/firebase-auth"
+import { onAuthStateChange, signInWithEmail, signInWithGoogle, signOutUser, getCurrentUser } from "@/lib/firebase-auth"
 import { getUser } from "@/lib/firebase-db"
 import type { User } from "@/types/entities"
 
@@ -13,6 +13,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; code: string; message: string }>
   loginWithGoogle: () => Promise<{ ok: true } | { ok: false; code: string; message: string }>
   logout: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -24,22 +25,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set a timeout to prevent infinite loading
     const timeout = setTimeout(() => {
-      console.log("Auth check timeout - setting loading to false")
       setLoading(false)
     }, 3000) // 3 second timeout
 
     // Listen to Firebase auth state changes
     const unsubscribe = onAuthStateChange(async (firebaseUser) => {
       clearTimeout(timeout) // Clear timeout if auth state resolves
-      console.log("Auth state changed:", firebaseUser ? "User logged in" : "No user")
       
       if (firebaseUser) {
         // User is signed in, get user data from Firestore
         try {
           const userData = await getUser(firebaseUser.uid)
           setUser(userData)
-        } catch (error) {
-          console.error("Error fetching user data:", error)
+        } catch {
           setUser(null)
         }
       } else {
@@ -87,8 +85,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           await signOutUser()
           setUser(null)
-        } catch (error) {
-          console.error("Logout error:", error)
+        } catch {
+          // Silent error handling
+        }
+      },
+      async refreshUser() {
+        const firebaseUser = getCurrentUser()
+        if (!firebaseUser) return
+        try {
+          const userData = await getUser(firebaseUser.uid)
+          setUser(userData)
+        } catch {
+          // Keep whatever we already had rather than wiping it on a transient error
         }
       },
     }),

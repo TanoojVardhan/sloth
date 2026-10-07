@@ -75,7 +75,6 @@ export default function GoalsPage() {
         icon={Target}
         title="Goals"
         description="Set and track your long-term ambitions across personal, career, health, and life objectives"
-        gradient="from-orange-600 to-red-600"
       >
         {!isAdding && !isLoading && (
           <Button onClick={() => setIsAdding(true)} size="lg" className="shadow-lg">
@@ -235,7 +234,7 @@ export default function GoalsPage() {
             {completedGoals.length > 0 && (
               <Card className="p-6">
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  <CheckCircle2 className="h-5 w-5 text-chart-1" />
                   Completed Goals
                   <span className="ml-auto text-sm font-normal text-muted-foreground">{completedGoals.length}</span>
                 </h2>

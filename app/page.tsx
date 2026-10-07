@@ -1,22 +1,69 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { 
-  CheckCircle2, 
-  Calendar, 
-  Target, 
-  Mic, 
-  CloudIcon, 
-  Zap, 
-  Shield,
+import {
+  CheckCircle2,
+  Calendar,
+  Target,
+  Mic,
+  CloudIcon,
+  Zap,
   ArrowRight,
-  Loader2
+  Loader2,
 } from "lucide-react"
+
+const features = [
+  {
+    icon: CheckCircle2,
+    title: "Smart task management",
+    description: "Kanban boards, priorities, and due dates — organized without the busywork.",
+  },
+  {
+    icon: Calendar,
+    title: "Event calendar",
+    description: "A full calendar view of what's ahead, so nothing important sneaks up on you.",
+  },
+  {
+    icon: Target,
+    title: "Goal tracking",
+    description: "Set target dates and tags for the things that matter, and watch the progress add up.",
+  },
+  {
+    icon: Mic,
+    title: "Voice input",
+    description: "Speak a task or event instead of typing it out when your hands are full.",
+  },
+  {
+    icon: CloudIcon,
+    title: "Cloud sync",
+    description: "Everything follows you between devices in real time, backed by Firebase.",
+  },
+  {
+    icon: Zap,
+    title: "Unified schedule",
+    description: "Tasks, events, and goals in one timeline, so planning the day takes one glance.",
+  },
+]
+
+const steps = [
+  {
+    title: "Create your account",
+    description: "Sign up with email or Google in seconds. No credit card required.",
+  },
+  {
+    title: "Add your items",
+    description: "Create tasks, events, and goals — by typing them in or just saying them out loud.",
+  },
+  {
+    title: "Stay organized",
+    description: "Check your schedule, track progress, and let the small wins add up.",
+  },
+]
 
 export default function HomePage() {
   const { user, loading } = useAuth()
@@ -45,250 +92,134 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background px-6 py-20 sm:py-32">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col items-center gap-8 text-center">
-            {/* Logo/Icon */}
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-6xl">
-              🦥
-            </div>
-            
-            {/* Headline */}
-            <div className="space-y-4">
-              <h1 className="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-                Sloth Planner
-              </h1>
-              <p className="mx-auto max-w-2xl text-xl text-muted-foreground sm:text-2xl">
-                AI-ready planning assistant that helps you manage tasks, schedule, and goals—calmly.
-              </p>
-            </div>
+      {/* Hero — asymmetric, grounded in the product itself rather than a
+          generic centered headline. The right-hand card is a small, honest
+          mockup of what a day in Sloth Planner actually looks like. */}
+      <section className="overflow-hidden border-b border-border/70 bg-gradient-to-b from-primary/5 to-background px-6 py-20 sm:py-28">
+        <div className="mx-auto grid max-w-6xl gap-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+          <div>
+            <p className="text-sm font-medium text-accent-foreground/80">🦥 A calmer way to plan</p>
+            <h1 className="mt-3 font-serif text-5xl font-medium leading-[1.05] tracking-tight text-foreground sm:text-6xl">
+              Plan your days without the rush.
+            </h1>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-muted-foreground">
+              Sloth Planner keeps your tasks, events, and goals in one unhurried place —
+              so you can move through the day at a pace that actually works for you.
+            </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <Button size="lg" asChild className="text-lg">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button size="lg" asChild className="text-base">
                 <Link href="/signup">
-                  Get Started Free
+                  Get started free
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="text-lg">
-                <Link href="/login">Sign In</Link>
+              <Button size="lg" variant="outline" asChild className="text-base">
+                <Link href="/login">Sign in</Link>
               </Button>
             </div>
 
-            {/* Trust Badge */}
-            <p className="text-sm text-muted-foreground">
-              🔒 Your data is secure • ☁️ Cloud synced • 🚀 No credit card required
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="px-6 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Everything you need to stay productive
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Powerful features designed for calm, focused productivity
+            <p className="mt-6 text-sm text-muted-foreground">
+              No credit card required · Cloud synced · Your data stays yours
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {/* Feature Cards */}
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <CheckCircle2 className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Smart Task Management</CardTitle>
-                <CardDescription>
-                  Organize tasks with Kanban boards, priorities, and due dates. Track progress effortlessly.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Calendar className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Event Calendar</CardTitle>
-                <CardDescription>
-                  Visualize your schedule with full calendar views. Never miss important events again.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Target className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Goal Tracking</CardTitle>
-                <CardDescription>
-                  Set long-term goals with target dates and tags. Track your progress and celebrate wins.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Mic className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Voice Input</CardTitle>
-                <CardDescription>
-                  Speak your tasks and events. AI-powered voice commands make planning effortless.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <CloudIcon className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Cloud Sync</CardTitle>
-                <CardDescription>
-                  Access your data from any device. Real-time synchronization with Firebase.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Zap className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Smart Schedule</CardTitle>
-                <CardDescription>
-                  See all your tasks, events, and goals in one unified timeline. Plan your day efficiently.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="bg-muted/50 px-6 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Get started in minutes
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Simple setup, powerful results
-            </p>
-          </div>
-
-          <div className="grid gap-8 md:grid-cols-3">
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                1
+          {/* A small, concrete mockup of the product instead of an emoji badge */}
+          <Card className="border-border/70 shadow-lg">
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-center justify-between">
+                <p className="font-serif text-lg font-medium text-foreground">Today</p>
+                <span className="rounded-full bg-accent/20 px-3 py-1 text-xs font-medium text-accent-foreground">
+                  3 of 5 done
+                </span>
               </div>
-              <h3 className="mb-2 text-xl font-semibold">Create Account</h3>
-              <p className="text-muted-foreground">
-                Sign up with email or Google in seconds. No credit card required.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                2
-              </div>
-              <h3 className="mb-2 text-xl font-semibold">Add Your Items</h3>
-              <p className="text-muted-foreground">
-                Create tasks, events, and goals. Use voice input or type them in.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                3
-              </div>
-              <h3 className="mb-2 text-xl font-semibold">Stay Organized</h3>
-              <p className="text-muted-foreground">
-                View your schedule, track progress, and achieve your goals.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="px-6 py-20">
-        <div className="mx-auto max-w-4xl text-center">
-          <Card className="border-primary/50 bg-primary/5">
-            <CardContent className="p-12">
-              <Shield className="mx-auto mb-6 h-16 w-16 text-primary" />
-              <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
-                Ready to plan calmly?
-              </h2>
-              <p className="mb-8 text-lg text-muted-foreground">
-                Join thousands of users who manage their life with Sloth Planner.
-                Start your journey to organized productivity today.
-              </p>
-              <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-                <Button size="lg" asChild className="text-lg">
-                  <Link href="/signup">
-                    Start Free Now
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild className="text-lg">
-                  <Link href="/login">Sign In</Link>
-                </Button>
-              </div>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-3 text-sm">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-chart-1" />
+                  <span className="text-muted-foreground line-through">Morning pages</span>
+                </li>
+                <li className="flex items-center gap-3 text-sm">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-chart-1" />
+                  <span className="text-muted-foreground line-through">Reply to design review</span>
+                </li>
+                <li className="flex items-center gap-3 text-sm">
+                  <div className="h-4 w-4 shrink-0 rounded-full border-2 border-primary/40" />
+                  <span className="text-foreground">Walk + plan next week&apos;s goals</span>
+                </li>
+                <li className="flex items-center gap-3 text-sm">
+                  <div className="h-4 w-4 shrink-0 rounded-full border-2 border-primary/40" />
+                  <span className="text-foreground">Team sync, 3:00 PM</span>
+                </li>
+              </ul>
             </CardContent>
           </Card>
         </div>
       </section>
 
-      {/* Footer Links */}
-      <section className="border-t bg-muted/30 px-6 py-12">
+      {/* Features — a two-column list rather than a wall of identical cards */}
+      <section className="px-6 py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <h3 className="mb-4 text-lg font-semibold">Resources</h3>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><Link href="/docs" className="hover:text-foreground">Documentation</Link></li>
-                <li><Link href="/guides" className="hover:text-foreground">User Guides</Link></li>
-                <li><Link href="/tutorials" className="hover:text-foreground">Tutorials</Link></li>
-                <li><Link href="/faq" className="hover:text-foreground">FAQ</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-4 text-lg font-semibold">Company</h3>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><Link href="/about" className="hover:text-foreground">About Us</Link></li>
-                <li><Link href="/mission" className="hover:text-foreground">Our Mission</Link></li>
-                <li><Link href="/blog" className="hover:text-foreground">Blog</Link></li>
-                <li><Link href="/support" className="hover:text-foreground">Support</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-4 text-lg font-semibold">Legal</h3>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="hover:text-foreground">Terms of Service</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-4 text-lg font-semibold">Product</h3>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><Link href="/signup" className="hover:text-foreground">Sign Up</Link></li>
-                <li><Link href="/login" className="hover:text-foreground">Log In</Link></li>
-                <li><Link href="/api" className="hover:text-foreground">API Docs</Link></li>
-              </ul>
-            </div>
+          <div className="max-w-xl">
+            <h2 className="font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
+              Everything you need, nothing you don&apos;t
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Built for calm, focused productivity — not another dashboard to manage.
+            </p>
           </div>
-          <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
-            <p>© 2025 Sloth Planner. Built with ❤️ using Next.js and Firebase.</p>
+
+          <div className="mt-12 grid gap-x-12 gap-y-10 sm:grid-cols-2">
+            {features.map((feature) => (
+              <div key={feature.title} className="flex gap-4">
+                <feature.icon className="mt-1 h-5 w-5 shrink-0 text-primary" />
+                <div>
+                  <h3 className="font-medium text-foreground">{feature.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it works — genuinely sequential, so numbering earns its place here */}
+      <section className="border-y border-border/70 bg-muted/40 px-6 py-20">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
+            Get started in minutes
+          </h2>
+
+          <div className="mt-12 grid gap-10 md:grid-cols-3">
+            {steps.map((step, i) => (
+              <div key={step.title}>
+                <span className="font-serif text-4xl font-medium text-primary/40">{i + 1}</span>
+                <h3 className="mt-3 text-lg font-semibold text-foreground">{step.title}</h3>
+                <p className="mt-2 text-muted-foreground">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="px-6 py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
+            Ready to plan calmly?
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+            Join the people managing their days with Sloth Planner — organized, without the rush.
+          </p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Button size="lg" asChild className="text-base">
+              <Link href="/signup">
+                Start free now
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild className="text-base">
+              <Link href="/login">Sign in</Link>
+            </Button>
           </div>
         </div>
       </section>

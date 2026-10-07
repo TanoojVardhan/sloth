@@ -85,7 +85,7 @@ export function usePlanner() {
     ...state.events.filter((e) => e.date),
     ...state.goals.filter((g) => g.date),
   ].map((i) => ({
-    type: state.tasks.includes(i as any) ? "task" : state.events.includes(i as any) ? "event" : "goal",
+    type: state.tasks.includes(i) ? "task" : state.events.includes(i) ? "event" : "goal",
     ...i,
   }))
 

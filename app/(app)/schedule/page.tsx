@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { PriorityBadge } from "@/components/priority-badge"
+import { formatEventDateTime } from "@/lib/format"
 
 export default function SchedulePage() {
   const { tasks, isLoading: tasksLoading } = useTasks()
@@ -148,7 +149,7 @@ export default function SchedulePage() {
       <div
         key={`${item.type}-${item.id}`}
         className={`rounded-lg border p-4 transition-all hover:bg-accent ${
-          isOverdue ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20" : ""
+          isOverdue ? "border-destructive/30 bg-destructive/10" : ""
         }`}
       >
         <div className="flex items-start justify-between gap-3">
@@ -177,13 +178,7 @@ export default function SchedulePage() {
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {itemTime.toLocaleString(undefined, {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
+                {formatEventDateTime(itemTime.toISOString())}
               </span>
               
               {item.location && (
@@ -209,7 +204,6 @@ export default function SchedulePage() {
         icon={Clock}
         title="Schedule"
         description="View all your scheduled items organized by time periods - today, tomorrow, this week, and beyond"
-        gradient="from-amber-600 to-orange-600"
       />
 
       {/* Quick Stats */}
@@ -217,7 +211,7 @@ export default function SchedulePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-500" />
+              <AlertCircle className="h-4 w-4 text-destructive" />
               Overdue
             </CardTitle>
           </CardHeader>
@@ -229,7 +223,7 @@ export default function SchedulePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Sun className="h-4 w-4 text-orange-500" />
+              <Sun className="h-4 w-4 text-warning" />
               Today
             </CardTitle>
           </CardHeader>
@@ -241,7 +235,7 @@ export default function SchedulePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Moon className="h-4 w-4 text-blue-500" />
+              <Moon className="h-4 w-4 text-primary" />
               Tomorrow
             </CardTitle>
           </CardHeader>
@@ -253,7 +247,7 @@ export default function SchedulePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
+              <TrendingUp className="h-4 w-4 text-chart-1" />
               This Week
             </CardTitle>
           </CardHeader>
@@ -265,7 +259,7 @@ export default function SchedulePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <History className="h-4 w-4 text-purple-500" />
+              <History className="h-4 w-4 text-chart-2" />
               Past
             </CardTitle>
           </CardHeader>
@@ -303,9 +297,9 @@ export default function SchedulePage() {
         <div className="space-y-6">
           {/* Overdue Items */}
           {overdue.length > 0 && (
-            <Card className="border-red-200 dark:border-red-900">
+            <Card className="border-destructive/30">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <CardTitle className="flex items-center gap-2 text-destructive">
                   <AlertCircle className="h-5 w-5" />
                   Overdue ({overdue.length})
                 </CardTitle>
@@ -322,7 +316,7 @@ export default function SchedulePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Sun className="h-5 w-5 text-orange-500" />
+                  <Sun className="h-5 w-5 text-warning" />
                   Today ({todayItems.length})
                 </CardTitle>
                 <CardDescription>
@@ -374,7 +368,7 @@ export default function SchedulePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Moon className="h-5 w-5 text-blue-500" />
+                  <Moon className="h-5 w-5 text-primary" />
                   Tomorrow ({tomorrowItems.length})
                 </CardTitle>
                 <CardDescription>
@@ -392,7 +386,7 @@ export default function SchedulePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-green-500" />
+                  <TrendingUp className="h-5 w-5 text-chart-1" />
                   This Week ({thisWeekItems.length})
                 </CardTitle>
                 <CardDescription>Upcoming in the next 7 days</CardDescription>
@@ -421,9 +415,9 @@ export default function SchedulePage() {
 
           {/* Past Items */}
           {pastItems.length > 0 && (
-            <Card className="border-purple-200 dark:border-purple-900">
+            <Card className="border-chart-2/30">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                <CardTitle className="flex items-center gap-2 text-chart-2">
                   <History className="h-5 w-5" />
                   Past Items ({pastItems.length})
                 </CardTitle>

@@ -2,17 +2,23 @@
 
 import type React from "react"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Menu } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Sidebar } from "@/components/sidebar"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationManager } from "@/components/notification-manager"
+import { CommandPalette } from "@/components/command-palette"
+import { OccupationOnboarding } from "@/components/occupation-picker"
+import { TimetableAutoSync } from "@/components/timetable-auto-sync"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -36,28 +42,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">
-      {/* Mobile sidebar opener */}
-      <div className="mb-4 flex items-center justify-between md:hidden">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72">
-            <div className="h-full overflow-auto p-4">
-              <Sidebar />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+    <div className="flex min-h-screen">
+      <NotificationManager />
+      <CommandPalette />
+      <OccupationOnboarding />
+      <TimetableAutoSync />
+      {/* Desktop sidebar */}
+      <Sidebar className="hidden md:flex" />
 
-      <div className="flex gap-6">
-        <aside className="hidden w-64 shrink-0 md:block">
-          <Sidebar />
-        </aside>
-        <div className="min-w-0 flex-1">{children}</div>
+      {/* Mobile off-canvas sidebar */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className="w-72 p-0">
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <Sidebar onNavigate={() => setMobileNavOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile top strip — just a menu trigger, not a full nav bar */}
+        <div className="flex items-center justify-between border-b bg-background px-4 py-3 md:hidden">
+          <Button variant="outline" size="icon" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
+            <Menu className="h-5 w-5" />
+          </Button>
+          <span className="font-serif text-lg font-semibold text-foreground">Sloth Planner</span>
+          <ThemeToggle />
+        </div>
+
+        <main className="flex-1 bg-muted/30">
+          <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 lg:px-10">{children}</div>
+        </main>
       </div>
     </div>
   )
