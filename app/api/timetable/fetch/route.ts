@@ -48,7 +48,7 @@ async function download(start: string): Promise<Fetched> {
       continue
     }
     if (res.status === 401 || res.status === 403 || res.status === 404) return { error: "private" }
-    if (!res.ok) return { error: "upstream", message: `The file host returned ${res.status}. Make sure the link is shared as Anyone with the link can view, and that it is a Google Sheet or an Excel file.` }
+    if (!res.ok) return { error: "upstream", message: `The file host returned ${res.status}.` }
     const buf = new Uint8Array(await res.arrayBuffer())
     if (buf.byteLength > MAX_BYTES) return { error: "too_large" }
     return { bytes: buf }
@@ -102,17 +102,29 @@ export async function POST(req: NextRequest) {
   try {
     let got = await download(source.url)
     // An uploaded .xlsx opened in Google Sheets can't be exported as CSV (Google
-    // answers 400), but the Excel export works for it. Retry once that way.
+    // answers 400). Try the Excel export, then the plain Drive file download.
     if ("error" in got && got.error === "upstream" && source.kind === "gsheet") {
-      const alt = source.url.replace("format=csv", "format=xlsx").replace("output=csv", "output=xlsx")
-      if (alt !== source.url) {
+      const id = source.url.match(/\/spreadsheets\/d\/([\w-]+)/)?.[1]
+      const alts = [
+        source.url.replace("format=csv", "format=xlsx").replace("output=csv", "output=xlsx"),
+        ...(id && id !== "e" ? [`https://drive.google.com/uc?export=download&id=${id}`] : []),
+      ].filter((a) => a !== source.url)
+      for (const alt of alts) {
         const retry = await download(alt)
-        if (!("error" in retry) || retry.error !== "upstream") got = retry
+        if (!("error" in retry) || retry.error !== "upstream") {
+          got = retry
+          break
+        }
+        got = { error: "upstream", message: `${got.message ?? ""} then ${retry.message ?? ""}` }
       }
     }
     if ("error" in got) {
       const status = got.error === "private" ? 403 : got.error === "too_large" ? 413 : 502
-      return NextResponse.json({ error: got.error, message: got.message }, { status })
+      const hint =
+        got.error === "upstream"
+          ? " Make sure the link is shared as Anyone with the link can view, and that it is a Google Sheet or an Excel file."
+          : ""
+      return NextResponse.json({ error: got.error, message: got.message ? got.message + hint : undefined }, { status })
     }
     const parsed = parseBytes(got.bytes)
     if (parsed === "private") return NextResponse.json({ error: "private" }, { status: 403 })

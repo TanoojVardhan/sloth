@@ -63,6 +63,12 @@ export function resolveSource(input: string): { url: string; kind: SourceKind } 
   const host = u.hostname.toLowerCase()
 
   if (host === "docs.google.com") {
+    // rtpof=true marks an Excel file opened in Google Sheets: CSV export is
+    // refused for those, so download the original file from Drive instead.
+    const officeId = u.searchParams.get("rtpof") === "true" ? u.pathname.match(/^\/spreadsheets\/d\/([\w-]+)/)?.[1] : null
+    if (officeId && officeId !== "e") {
+      return { url: `https://drive.google.com/uc?export=download&id=${officeId}`, kind: "drive" }
+    }
     const r = toCsvExportUrl(input)
     return "url" in r ? { url: r.url, kind: "gsheet" } : r
   }
