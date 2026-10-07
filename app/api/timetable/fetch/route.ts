@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { verifyIdToken } from "@/lib/firebase-admin"
+import { verifyIdTokenLite } from "@/lib/verify-token"
 import {
   parseTimetableCsv,
   parseTimetableTable,
@@ -83,8 +83,8 @@ function parseBytes(bytes: Uint8Array): ParseResult | "private" {
  */
 export async function POST(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
-  const verification = token ? await verifyIdToken(token) : null
-  if (!verification?.success || !verification.uid) {
+  const verification = token ? await verifyIdTokenLite(token) : null
+  if (!verification || !verification.success) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
   const uid = verification.uid

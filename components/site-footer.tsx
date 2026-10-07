@@ -12,7 +12,7 @@ export function SiteFooter() {
             <p className="text-sm text-muted-foreground leading-relaxed">
               AI-ready planning assistant that helps you manage tasks, schedule, and goals—calmly.
             </p>
-            <div className="mt-3 text-sm">Login details: demo only (no backend). Your info stays in your browser.</div>
+            <div className="mt-3 text-sm">Your account and data are stored securely with Firebase, and only you can see them.</div>
           </div>
         </div>
         <div>
