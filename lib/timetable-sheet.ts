@@ -2,13 +2,13 @@ import type { ClassSlot } from "@/types/entities"
 
 /** The columns the sheet should have. Header names are matched loosely. */
 export const SHEET_TEMPLATE = [
-  ["Specialization", "Day", "Start", "End", "Subject", "Room", "Teacher", "Date", "Until", "Status"],
-  ["CSE-AI", "Mon", "09:00", "10:00", "Machine Learning", "A-204", "Dr. Rao", "", "2026-12-20", ""],
-  ["CSE-AI", "Mon", "10:15", "11:15", "Data Structures", "A-204", "Prof. Iyer", "", "2026-12-20", ""],
-  ["CSE-AI", "Thu", "09:00", "10:00", "Machine Learning", "A-110", "Dr. Rao", "2026-10-15", "", ""],
-  ["CSE-AI", "Fri", "14:00", "15:00", "Data Structures", "A-204", "Prof. Iyer", "2026-10-16", "", "Cancelled"],
-  ["CSE-DS", "Tue", "09:00", "10:30", "Statistics", "B-101", "Dr. Mehta", "", "2026-12-20", ""],
-  ["", "Wed", "11:00", "12:00", "Seminar (everyone)", "Hall 1", "", "", "", ""],
+  ["Specialization", "Day", "Start", "End", "Code", "Subject", "Room", "Teacher", "Date", "Until", "Status"],
+  ["CSE-AI", "Mon", "09:00", "10:00", "AI301", "Machine Learning", "A-204", "Dr. Rao", "", "2026-12-20", ""],
+  ["CSE-AI", "Mon", "10:15", "11:15", "CS204", "Data Structures", "A-204", "Prof. Iyer", "", "2026-12-20", ""],
+  ["CSE-AI", "Thu", "09:00", "10:00", "AI301", "Machine Learning", "A-110", "Dr. Rao", "2026-10-15", "", ""],
+  ["CSE-AI", "Fri", "14:00", "15:00", "CS204", "Data Structures", "A-204", "Prof. Iyer", "2026-10-16", "", "Cancelled"],
+  ["CSE-DS", "Tue", "09:00", "10:30", "DS210", "Statistics", "B-101", "Dr. Mehta", "", "2026-12-20", ""],
+  ["", "Wed", "11:00", "12:00", "", "Seminar (everyone)", "Hall 1", "", "", "", ""],
 ]
 
 export function templateAsTsv(): string {
@@ -21,6 +21,8 @@ export interface SheetRow {
   startTime: string
   endTime: string
   subject: string
+  /** Subject code such as "MBA201", or "". */
+  code: string
   location: string
   teacher: string
   date: string | null
@@ -151,7 +153,8 @@ const ALIASES: Record<string, string[]> = {
   day: ["day", "weekday"],
   start: ["start", "starttime", "from", "begin", "begins"],
   end: ["end", "endtime", "to", "until", "ends"],
-  subject: ["subject", "subjectname", "class", "title", "paper", "module"],
+  subject: ["subject", "subjectname", "coursename", "papername", "class", "title", "paper", "module", "course"],
+  code: ["code", "subjectcode", "coursecode", "papercode", "modulecode", "courseno", "subjectno", "scode"],
   room: ["room", "location", "venue", "hall", "classroom"],
   teacher: ["teacher", "faculty", "lecturer", "professor", "instructor", "staff"],
   date: ["date", "on"],
@@ -258,6 +261,7 @@ export function parseTimetableTable(table: string[][]): ParseResult {
       startTime: start,
       endTime: end,
       subject,
+      code: get(r, "code"),
       location: get(r, "room"),
       teacher: get(r, "teacher"),
       date,
@@ -298,6 +302,13 @@ function colorFor(subject: string): string {
   return PALETTE[h % PALETTE.length]
 }
 
+/** What the subject picker shows and matches on: "CODE · Name", or just the name. */
+export function subjectLabel(r: { code?: string; subject: string }): string {
+  const name = r.subject.trim()
+  const code = (r.code ?? "").trim()
+  return code && !name.toLowerCase().includes(code.toLowerCase()) ? `${code} · ${name}` : name
+}
+
 export function sheetKey(r: SheetRow): string {
   return [r.date ?? "weekly", r.dayOfWeek, r.startTime, r.endTime, r.subject.toLowerCase()].join("|")
 }
@@ -316,7 +327,7 @@ export function rowsToClasses(
   const seen = new Set<string>()
   const out: Omit<ClassSlot, "classId">[] = []
   for (const r of rows) {
-    if (!wanted.has(r.subject.trim().toLowerCase())) continue
+    if (!wanted.has(subjectLabel(r).toLowerCase())) continue
     if (r.date && r.date < iso) continue // old one-off changes are noise
     const until = r.date ? null : (r.until ?? globalUntil)
     if (until && until < iso) continue // the timetable has already ended
@@ -325,6 +336,7 @@ export function rowsToClasses(
     seen.add(key)
     out.push({
       subject: r.subject,
+      code: r.code,
       dayOfWeek: r.dayOfWeek,
       startTime: r.startTime,
       endTime: r.endTime,

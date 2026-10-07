@@ -173,6 +173,7 @@ export default function TimetablePage() {
                       </span>
                     )}
                     <p className={cn("text-sm font-semibold leading-tight", state === "cancelled" && "line-through")}>{c.subject}</p>
+                    {c.code && <p className="text-[11px] font-medium text-muted-foreground">{c.code}</p>}
                     <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                       {format12(c.startTime)} – {format12(c.endTime)}
                     </p>

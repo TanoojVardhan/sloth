@@ -28,6 +28,8 @@ export type AssignmentStatus = "todo" | "in_progress" | "submitted" | "graded"
 export interface ClassSlot {
   classId: ID
   subject: string
+  /** Course / subject code from the sheet, e.g. "MBA201". */
+  code?: string
   dayOfWeek: number
   startTime: string // "HH:mm"
   endTime: string // "HH:mm"

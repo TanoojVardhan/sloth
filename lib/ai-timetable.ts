@@ -20,7 +20,7 @@ const MODEL_CHAIN = (() => {
   return env ? [env, ...chain.filter((m) => m !== env)] : chain
 })()
 
-export const FLAT_HEADER = ["Specialization", "Day", "Start", "End", "Subject", "Room", "Teacher", "Date", "Until", "Status"]
+export const FLAT_HEADER = ["Specialization", "Day", "Start", "End", "Code", "Subject", "Room", "Teacher", "Date", "Until", "Status"]
 
 const SCHEMA = {
   type: "OBJECT",
@@ -34,6 +34,7 @@ const SCHEMA = {
           day: { type: "STRING" },
           start: { type: "STRING" },
           end: { type: "STRING" },
+          code: { type: "STRING" },
           subject: { type: "STRING" },
           room: { type: "STRING" },
           teacher: { type: "STRING" },
@@ -76,7 +77,8 @@ sheets, stacked tables, or a column).
 Return every class occurrence as one item:
 - day: Mon, Tue, Wed, Thu, Fri, Sat or Sun
 - start, end: 24-hour HH:MM. Work out the end time from the next slot or the slot's stated range. If a class spans several slots, use the first start and last end.
-- subject: the course name only, without room or teacher
+- code: the subject or course code if the sheet shows one (like MBA201, FIN-305, 22MBA11). Keep it exactly as written, else "".
+- subject: the course name only, without the code, room or teacher
 - room, teacher: only if the sheet says so, else ""
 - specialization: the elective track or stream a class belongs to (for an MBA: Finance, Marketing, HR, Business Analytics, Operations and so on), taken from a heading, tab name, column, or the subject itself. A student picks one track and sees only its subjects, so list each track's subjects under that track's name.
   Subjects every student takes (core subjects, common classes) get specialization "".
@@ -114,7 +116,7 @@ export async function aiNormalizeTimetable(bytes: Uint8Array, grids: string[][][
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return { error: "no_key" }
 
-  const hash = createHash("sha256").update("v2").update(bytes).digest("hex")
+  const hash = createHash("sha256").update("v3").update(bytes).digest("hex")
   const hit = cache.get(hash)
   if (hit) return { table: hit }
 
@@ -148,6 +150,7 @@ export async function aiNormalizeTimetable(bytes: Uint8Array, grids: string[][][
           g(c, "day"),
           g(c, "start"),
           g(c, "end"),
+          g(c, "code"),
           g(c, "subject"),
           g(c, "room"),
           g(c, "teacher"),

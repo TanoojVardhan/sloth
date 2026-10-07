@@ -6,6 +6,7 @@ import {
   resolveSource,
   rowsToClasses,
   sheetDocId,
+  subjectLabel,
   type ParseResult,
 } from "@/lib/timetable-sheet"
 import { looksLikeXlsx, readXlsxSheets } from "@/lib/xlsx-lite"
@@ -184,7 +185,7 @@ export async function POST(req: NextRequest) {
     let note: string | undefined
     if (body.specializations != null && classes.length === 0) {
       const wanted = new Set(body.specializations.map((x) => x.toLowerCase()))
-      const mine = parsed.rows.filter((r) => wanted.has(r.subject.trim().toLowerCase()))
+      const mine = parsed.rows.filter((r) => wanted.has(subjectLabel(r).toLowerCase()))
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
       if (mine.length === 0) {
         note = `None of your picked subjects are in the file any more. Tap Change and choose again.`
@@ -200,12 +201,13 @@ export async function POST(req: NextRequest) {
     const groups: Record<string, string> = {}
     const seenNames = new Set<string>()
     for (const r of parsed.rows) {
-      const k = r.subject.trim().toLowerCase()
+      const label = subjectLabel(r)
+      const k = label.toLowerCase()
       if (!seenNames.has(k)) {
         seenNames.add(k)
-        subjectNames.push(r.subject.trim())
+        subjectNames.push(label)
       }
-      if (r.specialization && !groups[r.subject.trim()]) groups[r.subject.trim()] = r.specialization
+      if (r.specialization && !groups[label]) groups[label] = r.specialization
     }
     subjectNames.sort((a, b) => a.localeCompare(b))
     return NextResponse.json({ specializations: subjectNames, groups, skipped: parsed.skipped, classes, aiAssisted, note })

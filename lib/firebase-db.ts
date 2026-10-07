@@ -430,6 +430,7 @@ export async function getClasses(userId: ID): Promise<ClassSlot[]> {
       return {
         classId: d.id,
         subject: data.subject || "",
+        code: data.code || "",
         dayOfWeek: typeof data.dayOfWeek === "number" ? data.dayOfWeek : 0,
         startTime: data.startTime || "09:00",
         endTime: data.endTime || "10:00",
@@ -555,6 +556,7 @@ export async function syncSheetClasses(
     const old = byKey.get(key)
     const fields = {
       subject: c.subject,
+      code: c.code || "",
       dayOfWeek: c.dayOfWeek,
       startTime: c.startTime,
       endTime: c.endTime,
@@ -580,6 +582,7 @@ export async function syncSheetClasses(
         }),
       )
     } else if (
+      (old.code ?? "") !== fields.code ||
       old.location !== fields.location ||
       old.teacher !== fields.teacher ||
       !!old.cancelled !== fields.cancelled ||
