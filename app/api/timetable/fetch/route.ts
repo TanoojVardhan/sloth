@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { verifyIdTokenLite } from "@/lib/verify-token"
 import {
-  parseTimetableCsv,
+  parseCsv,
   parseTimetableTable,
   resolveSource,
   rowsToClasses,
@@ -9,6 +9,8 @@ import {
   type ParseResult,
 } from "@/lib/timetable-sheet"
 import { looksLikeXlsx, readXlsxSheets } from "@/lib/xlsx-lite"
+import { aiNormalizeTimetable } from "@/lib/ai-timetable"
+
 
 export const dynamic = "force-dynamic"
 
@@ -56,20 +58,25 @@ async function download(start: string): Promise<Fetched> {
   return { error: "upstream", message: "Too many redirects." }
 }
 
-function parseBytes(bytes: Uint8Array): ParseResult | "private" {
-  if (looksLikeXlsx(bytes)) {
-    let first: ParseResult | null = null
-    for (const grid of readXlsxSheets(bytes)) {
-      const r = parseTimetableTable(grid)
-      if (!r.error) return r
-      first ??= r
-    }
-    return first ?? { rows: [], specializations: [], skipped: [], error: "That Excel file has no sheets with data." }
-  }
+type Grids = string[][][] | "private"
+
+function toGrids(bytes: Uint8Array): Grids {
+  if (looksLikeXlsx(bytes)) return readXlsxSheets(bytes)
   const text = new TextDecoder().decode(bytes)
   // A sign-in or "request access" page comes back as HTML.
   if (/^\s*<(!doctype|html)/i.test(text)) return "private"
-  return parseTimetableCsv(text)
+  return [parseCsv(text)]
+}
+
+/** Strict parse of the template layout; first sheet that works wins. */
+function parseGrids(grids: string[][][]): ParseResult {
+  let first: ParseResult | null = null
+  for (const grid of grids) {
+    const r = parseTimetableTable(grid)
+    if (!r.error && r.rows.length) return r
+    first ??= r
+  }
+  return first ?? { rows: [], specializations: [], skipped: [], error: "That file has no sheets with data." }
 }
 
 /**
@@ -126,9 +133,45 @@ export async function POST(req: NextRequest) {
           : ""
       return NextResponse.json({ error: got.error, message: got.message ? got.message + hint : undefined }, { status })
     }
-    const parsed = parseBytes(got.bytes)
-    if (parsed === "private") return NextResponse.json({ error: "private" }, { status: 403 })
-    if (parsed.error) return NextResponse.json({ error: "bad_sheet", message: parsed.error }, { status: 422 })
+    const grids = toGrids(got.bytes)
+    if (grids === "private") return NextResponse.json({ error: "private" }, { status: 403 })
+
+    // 1) Template layout parses instantly. 2) Any other layout: let the AI read it.
+    let parsed = parseGrids(grids)
+    let aiAssisted = false
+    if (parsed.error || !parsed.rows.length) {
+      const ai = await aiNormalizeTimetable(got.bytes, grids)
+      if ("table" in ai) {
+        const viaAi = parseTimetableTable(ai.table)
+        if (!viaAi.error && viaAi.rows.length) {
+          parsed = viaAi
+          aiAssisted = true
+        }
+      } else if (ai.error === "no_key") {
+        return NextResponse.json(
+          {
+            error: "bad_sheet",
+            message:
+              "This file isn't in the template layout, and AI reading isn't set up on the server. Add GEMINI_API_KEY in the Vercel project settings, then redeploy.",
+          },
+          { status: 422 },
+        )
+      } else if (ai.error === "busy") {
+        return NextResponse.json(
+          { error: "upstream", message: "The AI is busy reading this timetable. Try again in a minute." },
+          { status: 503 },
+        )
+      }
+    }
+    if (parsed.error || !parsed.rows.length) {
+      return NextResponse.json(
+        {
+          error: "bad_sheet",
+          message: "I couldn't find any classes in that file, even with AI. Check that it holds a timetable with days and times.",
+        },
+        { status: 422 },
+      )
+    }
 
     // null = the student hasn't chosen yet, so nothing is imported.
     const classes =
@@ -138,7 +181,7 @@ export async function POST(req: NextRequest) {
             ...c,
             docId: sheetDocId(uid, c.sheetKey ?? ""),
           }))
-    return NextResponse.json({ specializations: parsed.specializations, skipped: parsed.skipped, classes })
+    return NextResponse.json({ specializations: parsed.specializations, skipped: parsed.skipped, classes, aiAssisted })
   } catch {
     return NextResponse.json({ error: "upstream", message: "Couldn't read that file. Try again in a moment." }, { status: 502 })
   }
