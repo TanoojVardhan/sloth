@@ -14,6 +14,7 @@ import { aiNormalizeTimetable } from "@/lib/ai-timetable"
 
 
 export const dynamic = "force-dynamic"
+export const maxDuration = 60
 
 const MAX_BYTES = 8 * 1024 * 1024
 

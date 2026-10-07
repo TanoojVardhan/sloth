@@ -2,13 +2,13 @@ import type { ClassSlot } from "@/types/entities"
 
 /** The columns the sheet should have. Header names are matched loosely. */
 export const SHEET_TEMPLATE = [
-  ["Specialization", "Day", "Start", "End", "Code", "Subject", "Room", "Teacher", "Date", "Until", "Status"],
-  ["CSE-AI", "Mon", "09:00", "10:00", "AI301", "Machine Learning", "A-204", "Dr. Rao", "", "2026-12-20", ""],
-  ["CSE-AI", "Mon", "10:15", "11:15", "CS204", "Data Structures", "A-204", "Prof. Iyer", "", "2026-12-20", ""],
-  ["CSE-AI", "Thu", "09:00", "10:00", "AI301", "Machine Learning", "A-110", "Dr. Rao", "2026-10-15", "", ""],
-  ["CSE-AI", "Fri", "14:00", "15:00", "CS204", "Data Structures", "A-204", "Prof. Iyer", "2026-10-16", "", "Cancelled"],
-  ["CSE-DS", "Tue", "09:00", "10:30", "DS210", "Statistics", "B-101", "Dr. Mehta", "", "2026-12-20", ""],
-  ["", "Wed", "11:00", "12:00", "", "Seminar (everyone)", "Hall 1", "", "", "", ""],
+  ["Specialization", "Section", "Day", "Start", "End", "Code", "Subject", "Room", "Teacher", "Date", "Until", "Status"],
+  ["CSE-AI", "", "Mon", "09:00", "10:00", "AI301", "Machine Learning", "A-204", "Dr. Rao", "", "2026-12-20", ""],
+  ["CSE-AI", "", "Mon", "10:15", "11:15", "CS204", "Data Structures", "A-204", "Prof. Iyer", "", "2026-12-20", ""],
+  ["CSE-AI", "", "Thu", "09:00", "10:00", "AI301", "Machine Learning", "A-110", "Dr. Rao", "2026-10-15", "", ""],
+  ["CSE-AI", "", "Fri", "14:00", "15:00", "CS204", "Data Structures", "A-204", "Prof. Iyer", "2026-10-16", "", "Cancelled"],
+  ["CSE-DS", "", "Tue", "09:00", "10:30", "DS210", "Statistics", "B-101", "Dr. Mehta", "", "2026-12-20", ""],
+  ["", "", "Wed", "11:00", "12:00", "", "Seminar (everyone)", "Hall 1", "", "", "", ""],
 ]
 
 export function templateAsTsv(): string {
@@ -23,6 +23,8 @@ export interface SheetRow {
   subject: string
   /** Subject code such as "MBA201", or "". */
   code: string
+  /** Section / batch of the subject, e.g. "A". */
+  section: string
   location: string
   teacher: string
   date: string | null
@@ -149,7 +151,8 @@ export function parseCsv(text: string): string[][] {
 // ---------- cell parsing ----------
 
 const ALIASES: Record<string, string[]> = {
-  specialization: ["specialization", "specialisation", "branch", "stream", "group", "batch", "section", "program", "programme"],
+  specialization: ["specialization", "specialisation", "branch", "stream", "group", "program", "programme"],
+  section: ["section", "sec", "batch", "division", "div"],
   day: ["day", "weekday"],
   start: ["start", "starttime", "from", "begin", "begins"],
   end: ["end", "endtime", "to", "until", "ends"],
@@ -241,7 +244,7 @@ export function parseTimetableTable(table: string[][]): ParseResult {
   const skipped: ParseResult["skipped"] = []
   table.slice(1).forEach((r, i) => {
     const line = i + 2
-    const subject = get(r, "subject")
+    const subject = get(r, "subject") || get(r, "code")
     const start = parseTime(get(r, "start"))
     const end = parseTime(get(r, "end"))
     const dateRaw = get(r, "date")
@@ -262,6 +265,7 @@ export function parseTimetableTable(table: string[][]): ParseResult {
       endTime: end,
       subject,
       code: get(r, "code"),
+      section: get(r, "section"),
       location: get(r, "room"),
       teacher: get(r, "teacher"),
       date,
@@ -303,14 +307,17 @@ function colorFor(subject: string): string {
 }
 
 /** What the subject picker shows and matches on: "CODE · Name", or just the name. */
-export function subjectLabel(r: { code?: string; subject: string }): string {
+export function subjectLabel(r: { code?: string; subject: string; section?: string }): string {
   const name = r.subject.trim()
   const code = (r.code ?? "").trim()
-  return code && !name.toLowerCase().includes(code.toLowerCase()) ? `${code} · ${name}` : name
+  const base = code && !name.toLowerCase().includes(code.toLowerCase()) ? `${code} · ${name}` : name
+  const sec = (r.section ?? "").trim()
+  if (!sec) return base
+  return `${base} · ${/^(sec|section|batch|group|div)/i.test(sec) ? sec : `Sec ${sec}`}`
 }
 
 export function sheetKey(r: SheetRow): string {
-  return [r.date ?? "weekly", r.dayOfWeek, r.startTime, r.endTime, r.subject.toLowerCase()].join("|")
+  return [r.section.toLowerCase(), r.date ?? "weekly", r.dayOfWeek, r.startTime, r.endTime, r.subject.toLowerCase()].join("|")
 }
 
 /** Rows for the subjects the student picked (matched by name, ignoring case). */
@@ -336,7 +343,7 @@ export function rowsToClasses(
     seen.add(key)
     out.push({
       subject: r.subject,
-      code: r.code,
+      code: [r.code, r.section].filter(Boolean).join(" · "),
       dayOfWeek: r.dayOfWeek,
       startTime: r.startTime,
       endTime: r.endTime,
