@@ -166,7 +166,7 @@ export default function TimetablePage() {
                       <span
                         className={cn(
                           "mb-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                          state === "cancelled" ? "bg-destructive/15 text-destructive" : "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+                          state === "cancelled" ? "bg-destructive/15 text-destructive" : "bg-warning/25 text-warning-foreground",
                         )}
                       >
                         {state === "cancelled" ? "Cancelled" : "Changed"}

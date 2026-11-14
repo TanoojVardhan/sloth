@@ -8,9 +8,9 @@ import type { Task, Event, Project, Goal, Note, ClassSlot, Assignment, ID } from
 // ============= TASKS HOOKS =============
 
 export function useTasks() {
-  const { user } = useAuth()
+  const { user, dataReady } = useAuth()
   const { data, error, isLoading, mutate } = useSWR<Task[]>(
-    user ? "tasks" : null,
+    user && dataReady ? "tasks" : null,
     () => api.getTasks(),
     {
       revalidateOnFocus: true,
@@ -40,9 +40,9 @@ export function useTasks() {
 }
 
 export function useProjectTasks(projectId: ID) {
-  const { user } = useAuth()
+  const { user, dataReady } = useAuth()
   const { data, error, isLoading, mutate } = useSWR<Task[]>(
-    user && projectId ? `projects/${projectId}/tasks` : null,
+    user && dataReady && projectId ? `projects/${projectId}/tasks` : null,
     () => api.getProjectTasks(projectId),
   )
 
@@ -57,9 +57,9 @@ export function useProjectTasks(projectId: ID) {
 // ============= EVENTS HOOKS =============
 
 export function useEvents() {
-  const { user } = useAuth()
+  const { user, dataReady } = useAuth()
   const { data, error, isLoading, mutate } = useSWR<Event[]>(
-    user ? "events" : null,
+    user && dataReady ? "events" : null,
     () => api.getEvents(),
     {
       revalidateOnFocus: true,
@@ -91,9 +91,9 @@ export function useEvents() {
 // ============= PROJECTS HOOKS =============
 
 export function useProjects() {
-  const { user } = useAuth()
+  const { user, dataReady } = useAuth()
   const { data, error, isLoading, mutate } = useSWR<Project[]>(
-    user ? "projects" : null,
+    user && dataReady ? "projects" : null,
     () => api.getProjects(),
     {
       revalidateOnFocus: true,
@@ -123,9 +123,9 @@ export function useProjects() {
 }
 
 export function useProject(projectId: ID) {
-  const { user } = useAuth()
+  const { user, dataReady } = useAuth()
   const { data, error, isLoading, mutate } = useSWR<Project>(
-    user && projectId ? `projects/${projectId}` : null,
+    user && dataReady && projectId ? `projects/${projectId}` : null,
     () => api.getProject(projectId),
   )
 
@@ -140,9 +140,9 @@ export function useProject(projectId: ID) {
 // ============= GOALS HOOKS =============
 
 export function useGoals() {
-  const { user } = useAuth()
+  const { user, dataReady } = useAuth()
   const { data, error, isLoading, mutate } = useSWR<Goal[]>(
-    user ? "goals" : null,
+    user && dataReady ? "goals" : null,
     () => api.getGoals(),
     {
       revalidateOnFocus: true,
@@ -174,8 +174,8 @@ export function useGoals() {
 // ============= NOTES HOOKS =============
 
 export function useNotes() {
-  const { user } = useAuth()
-  const { data, error, isLoading, mutate } = useSWR<Note[]>(user ? "notes" : null, () => api.getNotes(), {
+  const { user, dataReady } = useAuth()
+  const { data, error, isLoading, mutate } = useSWR<Note[]>(user && dataReady ? "notes" : null, () => api.getNotes(), {
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
   })
@@ -220,8 +220,8 @@ export function useNotes() {
 // ============= TIMETABLE HOOK =============
 
 export function useClasses() {
-  const { user } = useAuth()
-  const { data, error, isLoading, mutate } = useSWR<ClassSlot[]>(user ? "classes" : null, () => api.getClasses(), {
+  const { user, dataReady } = useAuth()
+  const { data, error, isLoading, mutate } = useSWR<ClassSlot[]>(user && dataReady ? "classes" : null, () => api.getClasses(), {
     revalidateOnFocus: true,
   })
   return {
@@ -247,8 +247,8 @@ export function useClasses() {
 // ============= ASSIGNMENTS HOOK =============
 
 export function useAssignments() {
-  const { user } = useAuth()
-  const { data, error, isLoading, mutate } = useSWR<Assignment[]>(user ? "assignments" : null, () => api.getAssignments(), {
+  const { user, dataReady } = useAuth()
+  const { data, error, isLoading, mutate } = useSWR<Assignment[]>(user && dataReady ? "assignments" : null, () => api.getAssignments(), {
     revalidateOnFocus: true,
   })
   return {

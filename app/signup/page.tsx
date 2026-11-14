@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import Image from "next/image"
 import { signUpWithEmail } from "@/lib/firebase-auth"
@@ -41,16 +41,12 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2 text-center">
-            <Image src="/sloth-planner-logo.png" alt="Sloth Planner" width={64} height={64} className="rounded-lg" />
-            <h1 className="text-2xl font-bold">Create your account</h1>
+            <Image src="/sloth-planner-logo.png" alt="Sloth Planner" width={72} height={72} className="rounded-2xl" />
+            <h1 className="font-display text-3xl font-semibold">Create your account</h1>
             <p className="text-sm text-muted-foreground">Sign up to start planning with Sloth Planner</p>
           </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Sign up</CardTitle>
-              <CardDescription>Enter your information to create an account</CardDescription>
-            </CardHeader>
             <CardContent>
               {error && (
                 <Alert variant="destructive" className="mb-4">

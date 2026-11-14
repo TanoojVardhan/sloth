@@ -17,7 +17,7 @@ function useIsClient() {
   )
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme()
   const isClient = useIsClient()
 
@@ -25,6 +25,7 @@ export function ThemeToggle() {
     <Button
       variant="outline"
       size="icon"
+      className={className}
       aria-label="Toggle theme"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >

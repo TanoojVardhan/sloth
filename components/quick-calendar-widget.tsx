@@ -32,7 +32,7 @@ export function QuickCalendarWidget() {
         <Link href="/calendar-integration">
           <Button variant="outline" className="w-full">
             <CalendarCheck className="mr-2 h-4 w-4" />
-            Connect Calendar
+            Connect calendar
           </Button>
         </Link>
       </CardContent>

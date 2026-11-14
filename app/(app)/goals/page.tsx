@@ -77,9 +77,9 @@ export default function GoalsPage() {
         description="Set and track your long-term ambitions across personal, career, health, and life objectives"
       >
         {!isAdding && !isLoading && (
-          <Button onClick={() => setIsAdding(true)} size="lg" className="shadow-lg">
+          <Button onClick={() => setIsAdding(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Goal
+            Add goal
           </Button>
         )}
       </PageHeader>
@@ -96,7 +96,7 @@ export default function GoalsPage() {
             <Card className="p-6">
               <form onSubmit={handleAddGoal} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Goal Title</Label>
+                  <Label htmlFor="title">Title</Label>
                   <Input
                     id="title"
                     value={title}
@@ -120,7 +120,7 @@ export default function GoalsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="targetDate" className="flex items-center gap-2">
                       <CalendarIcon className="h-4 w-4" />
-                      Target Date
+                      Target date
                     </Label>
                     <Input
                       id="targetDate"
@@ -151,7 +151,7 @@ export default function GoalsPage() {
                     ) : (
                       <>
                         <Plus className="mr-2 h-4 w-4" />
-                        Create Goal
+                        Create goal
                       </>
                     )}
                   </Button>
@@ -168,7 +168,7 @@ export default function GoalsPage() {
             <Card className="p-6">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                 <Target className="h-5 w-5 text-primary" />
-                Active Goals
+                Active
                 <span className="ml-auto text-sm font-normal text-muted-foreground">{activeGoals.length}</span>
               </h2>
               <div className="space-y-3">
@@ -224,7 +224,7 @@ export default function GoalsPage() {
                 ))}
                 {activeGoals.length === 0 && (
                   <div className="py-8 text-center text-sm text-muted-foreground">
-                    No active goals. Start by adding your first goal!
+                    No active goals yet. Add one to start tracking it.
                   </div>
                 )}
               </div>
@@ -235,7 +235,7 @@ export default function GoalsPage() {
               <Card className="p-6">
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                   <CheckCircle2 className="h-5 w-5 text-chart-1" />
-                  Completed Goals
+                  Completed
                   <span className="ml-auto text-sm font-normal text-muted-foreground">{completedGoals.length}</span>
                 </h2>
                 <div className="space-y-3">

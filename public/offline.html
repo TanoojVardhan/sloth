@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offline · Sloth Planner</title>
+<style>
+:root{--bg:#F9F6EF;--ink:#2E271F;--muted:#6E6457;--accent:#4A3F33}
+@media (prefers-color-scheme:dark){:root{--bg:#211B15;--ink:#F2ECE0;--muted:#B8AD9C;--accent:#E9DFC9}}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif;padding:16px}
+main{max-width:420px;text-align:center}img{width:72px;height:72px;border-radius:16px}
+h1{font:600 26px/1.2 Georgia,serif;margin:16px 0 8px}p{color:var(--muted);margin:0 0 20px}
+button{border:0;border-radius:10px;background:var(--accent);color:var(--bg);padding:10px 18px;font:600 15px system-ui;cursor:pointer}
+</style></head>
+<body><main><img src="/icon-192.png" alt=""><h1>You're offline</h1>
+<p>Sloth Planner needs a connection to load your encrypted data. Reconnect and try again.</p>
+<button onclick="location.reload()">Try again</button></main></body></html>

@@ -77,7 +77,7 @@ export function AlarmPopup({
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-primary">Reminder</p>
+            <p className="text-xs font-medium text-primary">Reminder</p>
             <h2 className="text-lg font-semibold leading-snug text-balance">{event?.title}</h2>
             {event && (
               <p className="text-sm text-muted-foreground">{formatEventTime(event.start)}</p>

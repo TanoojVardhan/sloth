@@ -1,0 +1,73 @@
+rules_version = '2';
+
+// Sloth Planner Firestore rules.
+//
+// 1. Everyone can only touch their own documents.
+// 2. The passphrase is optional. An account that has one (an `e2ee` key wrapper on its user
+//    document) may only write encrypted content: every write to a data collection has to carry an
+//    `enc` map. An account without one writes its content readable.
+// 3. Server-only collections (Google Calendar tokens, OAuth state) are closed to every client.
+//    The Next.js API routes reach them through the Admin SDK, which bypasses these rules.
+//
+// Deploy order matters, see FIRESTORE_RULES.md.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsExisting() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function writesOwn() {
+      return signedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // `enc` must be a map holding the iv and ciphertext strings.
+    function sealed() {
+      return request.resource.data.enc is map
+        && request.resource.data.enc.iv is string
+        && request.resource.data.enc.ct is string;
+    }
+
+    function account() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Readable content is fine for accounts without a passphrase, and while one is being removed.
+    function contentOk() {
+      return sealed() || !('e2ee' in account()) || account().get('e2eeDisabling', false) == true;
+    }
+
+    // One user document per account, keyed by uid.
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid;
+      // The wrapped key can be replaced (new passphrase). It can only be removed in the write
+      // that ends a removal the client started earlier by setting `e2eeDisabling`.
+      allow update: if signedIn() && request.auth.uid == uid
+        && (!('e2ee' in resource.data) || 'e2ee' in request.resource.data
+            || resource.data.get('e2eeDisabling', false) == true);
+      allow delete: if false;
+    }
+
+    match /tasks/{id}       { allow read, delete: if ownsExisting(); allow create: if writesOwn() && contentOk(); allow update: if ownsExisting() && writesOwn() && contentOk(); }
+    match /events/{id}      { allow read, delete: if ownsExisting(); allow create: if writesOwn() && contentOk(); allow update: if ownsExisting() && writesOwn() && contentOk(); }
+    match /projects/{id}    { allow read, delete: if ownsExisting(); allow create: if writesOwn() && contentOk(); allow update: if ownsExisting() && writesOwn() && contentOk(); }
+    match /goals/{id}       { allow read, delete: if ownsExisting(); allow create: if writesOwn() && contentOk(); allow update: if ownsExisting() && writesOwn() && contentOk(); }
+    match /notes/{id}       { allow read, delete: if ownsExisting(); allow create: if writesOwn() && contentOk(); allow update: if ownsExisting() && writesOwn() && contentOk(); }
+    match /classes/{id}     { allow read, delete: if ownsExisting(); allow create: if writesOwn() && contentOk(); allow update: if ownsExisting() && writesOwn() && contentOk(); }
+    match /assignments/{id} { allow read, delete: if ownsExisting(); allow create: if writesOwn() && contentOk(); allow update: if ownsExisting() && writesOwn() && contentOk(); }
+
+    // Server only.
+    match /userTokens/{id} { allow read, write: if false; }
+    match /oauthState/{id} { allow read, write: if false; }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

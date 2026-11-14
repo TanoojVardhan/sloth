@@ -91,7 +91,7 @@ export default function GoogleCalendarScheduler() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-6 w-6" />
-            Google Calendar Integration
+            Google Calendar
           </CardTitle>
           <CardDescription>
             Please log in to connect your Google Calendar
@@ -162,7 +162,7 @@ export default function GoogleCalendarScheduler() {
             </Button>
             <Button variant="outline" onClick={logout} size="lg">
               <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
+              Sign out
             </Button>
           </div>
 
@@ -192,7 +192,7 @@ export default function GoogleCalendarScheduler() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-6 w-6 text-chart-1" />
-            Google Calendar Connected
+            Google Calendar connected
           </CardTitle>
           <CardDescription>
             Signed in as <strong>{user.email}</strong>

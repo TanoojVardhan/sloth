@@ -157,12 +157,12 @@ export default function EventsPage() {
   const renderEvent = (event: (typeof events)[number], muted: boolean) => (
     <div
       key={event.eventId}
-      className={`group rounded-xl border bg-card p-4 transition-all hover:shadow-md ${muted ? "opacity-60 hover:opacity-100" : "hover:border-primary/40"}`}
+      className={`group rounded-xl border bg-card p-4 transition-colors ${muted ? "opacity-60 hover:opacity-100" : "hover:border-primary/40"}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <span className="text-[10px] font-medium uppercase leading-none">
+            <span className="text-[10px] font-medium leading-none">
               {new Date(event.start).toLocaleDateString(undefined, { month: "short" })}
             </span>
             <span className="text-base font-bold leading-none">{new Date(event.start).getDate()}</span>
@@ -220,9 +220,9 @@ export default function EventsPage() {
         description="Schedule and manage your meetings, appointments, and important dates with locations"
       >
         {!isAdding && (
-          <Button onClick={() => setIsAdding(true)} size="lg" className="shadow-lg">
+          <Button onClick={() => setIsAdding(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Event
+            Add event
           </Button>
         )}
       </PageHeader>
@@ -231,7 +231,7 @@ export default function EventsPage() {
         <Card className="p-6">
           <form onSubmit={handleAddEvent} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Event Title</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
                 value={title}
@@ -349,7 +349,7 @@ export default function EventsPage() {
                 ) : (
                   <>
                     <Plus className="mr-2 h-4 w-4" />
-                    Create Event
+                    Create event
                   </>
                 )}
               </Button>
@@ -372,7 +372,7 @@ export default function EventsPage() {
           <Card className="p-6">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
               <CalendarIcon className="h-5 w-5 text-primary" />
-              Upcoming Events
+              Upcoming
               <span className="ml-auto text-sm font-normal text-muted-foreground">{upcomingEvents.length}</span>
             </h2>
             <div className="space-y-3">
@@ -387,7 +387,7 @@ export default function EventsPage() {
             <Card className="p-6">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                 <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-                Past Events
+                Past
                 <span className="ml-auto text-sm font-normal text-muted-foreground">{pastEvents.length}</span>
               </h2>
               <div className="space-y-3">{pastEvents.map((event) => renderEvent(event, true))}</div>

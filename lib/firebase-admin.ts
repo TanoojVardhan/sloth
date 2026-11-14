@@ -1,5 +1,5 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app"
-import { getAuth } from "firebase-admin/auth"
+import { verifyIdTokenLite } from "./verify-token"
 import { getFirestore } from "firebase-admin/firestore"
 import { readFileSync, existsSync } from "fs"
 import { join } from "path"
@@ -53,19 +53,14 @@ if (!getApps().length) {
   }
 }
 
-// Export Firestore and Auth instances
+// Firestore instance. Auth is checked via Identity Toolkit (verify-token.ts)
+// because firebase-admin/auth crashes in Vercel's serverless runtime.
 export const adminDb = getFirestore()
-export const adminAuth = getAuth()
 
-// Helper function to verify Firebase ID token
 export async function verifyIdToken(idToken: string) {
-  try {
-    const decodedToken = await adminAuth.verifyIdToken(idToken)
-    return { success: true, uid: decodedToken.uid, token: decodedToken }
-  } catch (error) {
-    console.error("Token verification error:", error)
-    return { success: false, error: "Invalid or expired token" }
-  }
+  const r = await verifyIdTokenLite(idToken)
+  if (!r.success) return { success: false as const, error: "Invalid or expired token" }
+  return { success: true as const, uid: r.uid }
 }
 
 // Shared helper for API routes: pulls the Firebase ID token out of the

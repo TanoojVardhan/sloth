@@ -17,6 +17,10 @@ export interface User {
   timetableSyncedAt?: number | null
   /** Last day (YYYY-MM-DD) the weekly timetable is valid; classes stop showing after it. */
   timetableUntil?: string | null
+  /** Wrapped data key for end-to-end encryption. Safe to store: useless without the passphrase or recovery key. */
+  e2ee?: import("@/lib/e2ee-core").KeyMeta
+  /** Set while the passphrase is being removed, so an interrupted removal resumes on the next unlock. */
+  e2eeDisabling?: boolean
 }
 
 export type Occupation = "student" | "educator" | "professional" | "freelancer" | "other"
@@ -78,6 +82,7 @@ export interface Task {
   tags?: string[] // freeform labels, Notion-style
   notes?: string // rich-ish notes: plain text; lines starting "- [ ] "/"- [x] " render as a checklist
   parentTaskId?: ID | null // Notion-style one-level nesting: set to make this a sub-task
+  completedAt?: string | null // ISO, set when status becomes "done"
   createdAt?: string // ISO
 }
 

@@ -5,11 +5,14 @@ import type React from "react"
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { onAuthStateChange, signInWithEmail, signInWithGoogle, signOutUser, getCurrentUser } from "@/lib/firebase-auth"
 import { getUser } from "@/lib/firebase-db"
+import { dropActiveKey, forgetCachedKey, rememberOnDevice, setPlainMode, useDataReady, useSetupRequested } from "@/lib/e2ee"
 import type { User } from "@/types/entities"
 
 type AuthContextValue = {
   user: User | null
   loading: boolean
+  /** Signed in AND data can be read: no passphrase on the account, or its key is loaded. */
+  dataReady: boolean
   login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; code: string; message: string }>
   loginWithGoogle: () => Promise<{ ok: true } | { ok: false; code: string; message: string }>
   logout: () => Promise<void>
@@ -19,8 +22,16 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUserState] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const keyReady = useDataReady()
+  const settingUp = useSetupRequested()
+
+  // The storage mode is set before the user state, so nothing can write in the wrong form.
+  const setUser = (u: User | null) => {
+    setPlainMode(!!u && !u.e2ee)
+    setUserState(u)
+  }
 
   useEffect(() => {
     // Set a timeout to prevent infinite loading
@@ -41,7 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
         }
       } else {
-        // User is signed out
+        // User is signed out: the key must not outlive the session in memory.
+        dropActiveKey()
         setUser(null)
       }
       setLoading(false)
@@ -57,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       loading,
+      dataReady: !!user && !settingUp && (user.e2ee ? keyReady : true),
       async login(email, password) {
         try {
           const u = await signInWithEmail(email, password)
@@ -83,6 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       async logout() {
         try {
+          const uid = getCurrentUser()?.uid
+          if (uid && !rememberOnDevice()) await forgetCachedKey(uid)
+          dropActiveKey()
           await signOutUser()
           setUser(null)
         } catch {
@@ -100,7 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
     }),
-    [user, loading],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setUser only wraps a stable state setter
+    [user, loading, keyReady, settingUp],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

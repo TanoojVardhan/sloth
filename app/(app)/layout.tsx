@@ -14,9 +14,10 @@ import { NotificationManager } from "@/components/notification-manager"
 import { CommandPalette } from "@/components/command-palette"
 import { OccupationOnboarding } from "@/components/occupation-picker"
 import { TimetableAutoSync } from "@/components/timetable-auto-sync"
+import { E2eeGate } from "@/components/e2ee-gate"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
+  const { user, loading, dataReady } = useAuth()
   const router = useRouter()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
@@ -30,8 +31,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="text-muted-foreground">Loading your workspace...</p>
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent"></div>
+          <p className="text-sm text-muted-foreground">Opening your planner…</p>
         </div>
       </div>
     )
@@ -43,16 +44,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <NotificationManager />
-      <CommandPalette />
-      <OccupationOnboarding />
-      <TimetableAutoSync />
+      {dataReady && (
+        <>
+          <NotificationManager />
+          <CommandPalette />
+          <OccupationOnboarding />
+          <TimetableAutoSync />
+        </>
+      )}
       {/* Desktop sidebar */}
       <Sidebar className="hidden md:flex" />
 
       {/* Mobile off-canvas sidebar */}
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <SheetContent side="left" className="w-72 p-0">
+        <SheetContent side="left" className="w-64 border-0 p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <Sidebar onNavigate={() => setMobileNavOpen(false)} />
         </SheetContent>
@@ -61,15 +66,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top strip — just a menu trigger, not a full nav bar */}
         <div className="flex items-center justify-between border-b bg-background px-4 py-3 md:hidden">
-          <Button variant="outline" size="icon" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
+          <Button variant="ghost" size="icon" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-serif text-lg font-semibold text-foreground">Sloth Planner</span>
+          <span className="font-display text-lg font-semibold text-foreground">Sloth Planner</span>
           <ThemeToggle />
         </div>
 
-        <main className="flex-1 bg-muted/30">
-          <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 lg:px-10">{children}</div>
+        <main className="flex-1">
+          <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-9 lg:px-10">{dataReady ? children : <E2eeGate />}</div>
         </main>
       </div>
     </div>

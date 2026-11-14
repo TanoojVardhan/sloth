@@ -20,6 +20,7 @@ import {
   Timer,
   GraduationCap,
   ClipboardList,
+  BarChart3,
 } from "lucide-react"
 import { openCommandPalette } from "./command-palette"
 import { Button } from "./ui/button"
@@ -37,6 +38,7 @@ const nav = [
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/schedule", label: "Schedule", icon: ListTodo },
   { href: "/focus", label: "Focus", icon: Timer },
+  { href: "/insights", label: "Insights", icon: BarChart3 },
 ]
 
 // Shown only for occupations that use them (set in Settings).
@@ -55,35 +57,41 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
+  const linkClass = (active: boolean) =>
+    cn(
+      "flex items-center gap-3 rounded-full px-3.5 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+      active
+        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+    )
+
   return (
     <div
       className={cn(
-        "sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
+        "sticky top-0 flex h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground",
         className
       )}
     >
-      {/* Logo/Brand */}
-      <Link href="/dashboard" className="flex items-center gap-3 border-b border-sidebar-border px-6 py-5">
-        <Image src="/sloth-planner-logo.png" alt="" width={32} height={32} className="rounded-lg" />
+      <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-3 px-5 pb-4 pt-6">
+        <Image src="/sloth-planner-logo.png" alt="" width={36} height={36} className="rounded-xl" />
         <div>
-          <h1 className="font-serif text-base font-semibold leading-tight">Sloth Planner</h1>
-          <p className="text-xs text-sidebar-foreground/60">Stay organized, unhurried</p>
+          <div className="font-display text-lg font-semibold leading-tight">Sloth Planner</div>
+          <p className="text-xs text-sidebar-foreground/55">Stay organized, unhurried</p>
         </div>
       </Link>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
         <button
           type="button"
           onClick={() => {
             onNavigate?.()
             openCommandPalette()
           }}
-          className="mb-3 flex w-full items-center gap-3 rounded-lg border border-sidebar-border bg-background/60 px-4 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent"
+          className="mb-3 flex w-full items-center gap-3 rounded-full bg-sidebar-accent/70 px-3.5 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <Search className="h-4 w-4" />
           Search
-          <kbd className="ml-auto rounded border border-sidebar-border px-1.5 text-[10px]">Ctrl K</kbd>
+          <kbd className="ml-auto rounded-md border border-sidebar-border px-1.5 font-sans text-[10px]">Ctrl K</kbd>
         </button>
         {[
           ...nav.slice(0, 3),
@@ -91,62 +99,52 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
           ...nav.slice(3),
         ].map((item) => {
           const Icon = item.icon
-          const isActive = pathname === item.href
-
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
           return (
             <Link
               key={item.href}
               href={item.href}
               onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
+              aria-current={isActive ? "page" : undefined}
+              className={linkClass(isActive)}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-[18px] w-[18px]" />
               {item.label}
             </Link>
           )
         })}
       </nav>
 
-      {/* User Profile & Settings */}
-      <div className="space-y-2 border-t border-sidebar-border p-4">
-        <Link
-          href="/settings"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
-            pathname === "/settings"
-              ? "bg-sidebar-primary text-sidebar-primary-foreground"
-              : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          )}
-        >
-          <Settings className="h-5 w-5" />
+      <div className="space-y-1 border-t border-sidebar-border p-3">
+        <Link href="/settings" onClick={onNavigate} className={linkClass(pathname === "/settings")}>
+          <Settings className="h-[18px] w-[18px]" />
           Settings
         </Link>
 
-        <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/60 px-4 py-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sidebar-primary/20">
+        <div className="flex items-center gap-2 px-2 py-2">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sidebar-accent">
             {user?.photoURL ? (
-              <Image src={user.photoURL} alt="" width={32} height={32} className="h-full w-full object-cover" />
+              <Image src={user.photoURL} alt="" width={36} height={36} className="h-full w-full object-cover" />
             ) : (
               <User className="h-4 w-4" />
             )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{user?.name || "User"}</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">{user?.email}</p>
+            <p className="truncate text-xs text-sidebar-foreground/55">{user?.email}</p>
           </div>
-          <ThemeToggle />
+          <ThemeToggle className="size-8 border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground dark:bg-transparent" />
+          <Button
+            onClick={logout}
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Log out"
+            title="Log out"
+            className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground dark:hover:bg-sidebar-accent"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
-
-        <Button onClick={logout} variant="outline" className="w-full justify-start gap-3" size="sm">
-          <LogOut className="h-4 w-4" />
-          Logout
-        </Button>
       </div>
     </div>
   )

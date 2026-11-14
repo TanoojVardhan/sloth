@@ -8,7 +8,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -69,16 +69,12 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2 text-center">
-            <Image src="/sloth-planner-logo.png" alt="Sloth Planner" width={64} height={64} className="rounded-lg" />
-            <h1 className="text-2xl font-bold">Welcome back</h1>
-            <p className="text-sm text-muted-foreground">Log in to Sloth Planner</p>
+            <Image src="/sloth-planner-logo.png" alt="Sloth Planner" width={72} height={72} className="rounded-2xl" />
+            <h1 className="font-display text-3xl font-semibold">Welcome back</h1>
+            <p className="text-sm text-muted-foreground">Log in to pick up where you left off</p>
           </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Login to your account</CardTitle>
-              <CardDescription>Enter your email and password below</CardDescription>
-            </CardHeader>
             <CardContent>
               {error && (
                 <Alert variant="destructive" className="mb-4">
@@ -133,15 +129,15 @@ export default function LoginPage() {
                 
                 <div className="space-y-2 pt-2">
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Logging in..." : "Continue"}
+                    {isLoading ? "Logging in…" : "Log in"}
                   </Button>
                   
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t" />
                     </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-card px-2 text-muted-foreground">or</span>
                     </div>
                   </div>
 
@@ -170,7 +166,7 @@ export default function LoginPage() {
                         fill="#EA4335"
                       />
                     </svg>
-                    Google
+                    Continue with Google
                   </Button>
 
                   <Button

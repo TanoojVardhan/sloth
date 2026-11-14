@@ -285,10 +285,10 @@ export default function SchedulePage() {
             </p>
             <div className="flex justify-center gap-2 mt-4">
               <Link href="/tasks">
-                <Button variant="outline" size="sm">Add Task</Button>
+                <Button variant="outline" size="sm">Add task</Button>
               </Link>
               <Link href="/events">
-                <Button size="sm">Add Event</Button>
+                <Button size="sm">Add event</Button>
               </Link>
             </div>
           </div>

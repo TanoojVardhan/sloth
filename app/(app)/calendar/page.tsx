@@ -40,7 +40,7 @@ export default function CalendarPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Quick Add</CardTitle>
+          <CardTitle>Quick add</CardTitle>
           <CardDescription>Create a new task, event, or goal</CardDescription>
         </CardHeader>
         <CardContent>
@@ -60,7 +60,7 @@ export default function CalendarPage() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
-                Upcoming Schedule
+                Coming up
               </CardTitle>
               <CardDescription>All scheduled items across tasks, events, and goals</CardDescription>
             </div>

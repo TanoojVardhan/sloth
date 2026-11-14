@@ -41,7 +41,7 @@ export default function VerifyPage() {
   return (
     <div className="mx-auto max-w-md px-6 py-10">
       <div className="rounded-xl border bg-card p-6">
-        <h1 className="mb-1 text-2xl font-semibold">Verify it’s you</h1>
+        <h1 className="mb-1 font-display text-3xl font-semibold">Verify it’s you</h1>
         <p className="mb-6 text-muted-foreground">
           Enter the 6‑digit code sent to your email or phone (demo: any 6 numbers).
         </p>

@@ -194,7 +194,7 @@ export default function FocusPage() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-serif text-6xl font-semibold tabular-nums">
+              <span className="font-display text-6xl font-semibold tabular-nums">
                 {mm}:{ss}
               </span>
               <span className="mt-1 text-sm text-muted-foreground">{PHASE_LABEL[phase]}</span>

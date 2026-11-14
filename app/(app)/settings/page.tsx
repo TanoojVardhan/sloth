@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/components/auth-provider"
 import { useGoogleCalendar } from "@/hooks/use-google-calendar"
 import { hasPasswordProvider, addPasswordToAccount } from "@/lib/firebase-auth"
+import { E2eeSettingsCard } from "@/components/e2ee-settings-card"
+import { InstallAppCard } from "@/components/install-app-card"
 import { updateUser } from "@/lib/firebase-db"
 import { uploadAvatar, deleteAvatarByUrl } from "@/lib/firebase-storage"
 import { requestNotificationPermission } from "@/lib/notifications"
@@ -327,6 +329,8 @@ function SettingsForm({ user }: { user: User | null }) {
         </Card>
 
         <div className="space-y-6">
+          <E2eeSettingsCard />
+          <InstallAppCard />
           <OccupationCard user={user} onUserUpdated={refreshUser} />
 
           <AppearanceCard />
@@ -340,7 +344,7 @@ function SettingsForm({ user }: { user: User | null }) {
                   <CheckCircle2 className="h-5 w-5 text-chart-1" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">Google Calendar Connected</h2>
+                  <h2 className="text-lg font-semibold text-foreground">Google Calendar connected</h2>
                   <p className="text-sm text-chart-1">Auto-sync active ✓</p>
                 </div>
               </div>
@@ -361,7 +365,7 @@ function SettingsForm({ user }: { user: User | null }) {
                   <CalendarCheck className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">Google Calendar Integration</h2>
+                  <h2 className="text-lg font-semibold">Google Calendar</h2>
                   <p className="text-sm text-muted-foreground">Auto-sync tasks & events</p>
                 </div>
               </div>
@@ -372,7 +376,7 @@ function SettingsForm({ user }: { user: User | null }) {
               <Link href="/calendar-integration">
                 <Button className="w-full">
                   <CalendarCheck className="mr-2 h-4 w-4" />
-                  Connect Calendar
+                  Connect calendar
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -404,7 +408,7 @@ function OccupationCard({ user, onUserUpdated }: { user: User | null; onUserUpda
 
   return (
     <Card className="p-6">
-      <h2 className="font-serif text-lg font-semibold">What you do</h2>
+      <h2 className="font-display text-lg font-semibold">What you do</h2>
       <p className="mb-4 mt-1 text-sm text-muted-foreground">
         Changes which tools appear in the sidebar. Your data is never removed when you switch.
       </p>
@@ -491,7 +495,7 @@ function NotificationsCard({ user, onUserUpdated }: { user: User | null; onUserU
           <div>
             <div className="font-medium">Browser Notifications</div>
             <div className="text-sm text-muted-foreground">
-              Get a reminder here for tasks due today and events starting soon, while a tab is open.
+              Reminders for tasks due today, events, classes 10 minutes before they start, and assignment deadlines. They arrive while Sloth is open in a tab or as an installed app.
             </div>
           </div>
           <Switch checked={enabled} disabled={isUpdating} onCheckedChange={handleToggle} />
@@ -503,16 +507,6 @@ function NotificationsCard({ user, onUserUpdated }: { user: User | null; onUserU
           </p>
         )}
 
-        <div className="flex items-center justify-between rounded-lg border p-4 opacity-60">
-          <div>
-            <div className="flex items-center gap-2 font-medium">
-              <Mail className="h-4 w-4" />
-              Daily Email Summary
-            </div>
-            <div className="text-sm text-muted-foreground">Receive daily task updates by email</div>
-          </div>
-          <div className="rounded-full bg-secondary px-3 py-1 text-xs font-medium">Coming soon</div>
-        </div>
       </div>
     </Card>
   )

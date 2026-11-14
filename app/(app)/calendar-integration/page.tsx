@@ -4,9 +4,8 @@ import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import GoogleCalendarScheduler from "@/components/google-calendar-scheduler"
 import { PageHeader } from "@/components/page-header"
-import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CalendarCheck, Sparkles, Zap, Shield, CheckCircle2, AlertCircle } from "lucide-react"
+import { CalendarCheck, CheckCircle2, AlertCircle } from "lucide-react"
 
 function OAuthCallbackBanner() {
   const searchParams = useSearchParams()
@@ -33,7 +32,7 @@ export default function CalendarIntegrationPage() {
       <PageHeader
         icon={CalendarCheck}
         title="Google Calendar"
-        description="Connect your Google Calendar to automatically sync tasks and events from Sloth Planner"
+        description="Send the tasks and events you create here to your Google Calendar automatically."
       />
 
       <Suspense fallback={null}>
@@ -43,104 +42,31 @@ export default function CalendarIntegrationPage() {
       {/* Main Connection Component */}
       <GoogleCalendarScheduler />
 
-      {/* Features Section */}
-      <div className="mx-auto grid max-w-4xl gap-6 pt-8 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-              <CalendarCheck className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="mb-2 font-semibold">Auto-Sync</h3>
-            <p className="text-sm text-muted-foreground">
-              Tasks and events automatically sync to your Google Calendar
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-              <Sparkles className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="mb-2 font-semibold">Seamless</h3>
-            <p className="text-sm text-muted-foreground">
-              No manual event creation needed - it happens automatically
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-              <Zap className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="mb-2 font-semibold">Real-time</h3>
-            <p className="text-sm text-muted-foreground">
-              Events appear in your calendar immediately after creation
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-              <Shield className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="mb-2 font-semibold">Secure</h3>
-            <p className="text-sm text-muted-foreground">
-              Your tokens are encrypted and stored securely in Firebase
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* How it Works Section */}
-      <div className="mx-auto max-w-3xl space-y-4 rounded-lg border bg-muted/30 p-6">
-        <h2 className="text-2xl font-bold">How It Works</h2>
-        <ol className="space-y-3 text-sm text-muted-foreground">
-          <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              1
-            </span>
-            <span>
-              <strong className="text-foreground">Connect Google Calendar:</strong> Sign in with your Google
-              account and grant permission to manage calendar events.
-            </span>
-          </li>
-          <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              2
-            </span>
-            <span>
-              <strong className="text-foreground">Secure Token Storage:</strong> Your OAuth tokens are encrypted
-              and stored in Firebase Firestore for future use.
-            </span>
-          </li>
-          <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              3
-            </span>
-            <span>
-              <strong className="text-foreground">Create Tasks & Events:</strong> Use the Quick Add panel on the dashboard
-              to create tasks and events with dates.
-            </span>
-          </li>
-          <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              4
-            </span>
-            <span>
-              <strong className="text-foreground">Automatic Sync:</strong> They automatically appear in your Google
-              Calendar - no manual event creation needed!
-            </span>
-          </li>
+      <section className="mx-auto max-w-2xl">
+        <h2 className="text-xl font-semibold">How it works</h2>
+        <ol className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground">
+          {[
+            ["Connect your Google account", "Sign in with Google and allow Sloth Planner to manage calendar events."],
+            ["Add tasks and events as usual", "Anything with a date, from Quick add or the Tasks and Events pages."],
+            ["Find them in Google Calendar", "They appear there right after you create them. Nothing to copy across."],
+          ].map(([title, body], i) => (
+            <li key={title} className="flex gap-3">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
+                {i + 1}
+              </span>
+              <span>
+                <strong className="block font-medium text-foreground">{title}</strong>
+                {body}
+              </span>
+            </li>
+          ))}
         </ol>
-      </div>
+      </section>
 
-      {/* Setup Instructions */}
-      <div className="mx-auto max-w-3xl space-y-4 rounded-lg border border-warning/30 bg-warning/10 p-6">
-        <h2 className="text-2xl font-bold">Setup Required</h2>
-        <div className="space-y-3 text-sm">
+      {/* Only matters to whoever hosts the app, so it stays folded away. */}
+      <details className="mx-auto max-w-2xl rounded-xl border bg-card px-5 py-4 text-sm">
+        <summary className="cursor-pointer font-medium">Running your own copy? Set up Google OAuth first</summary>
+        <div className="mt-4 space-y-3">
           <p>
             To use this feature, you need to configure Google OAuth credentials:
           </p>
@@ -181,7 +107,7 @@ GOOGLE_CLIENT_SECRET=your_client_secret_here`}
             <li>Restart the development server</li>
           </ol>
         </div>
-      </div>
+      </details>
     </div>
   )
 }

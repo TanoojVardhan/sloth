@@ -1,85 +1,63 @@
 import Image from "next/image"
 import Link from "next/link"
 
+const groups = [
+  {
+    title: "Learn",
+    links: [
+      ["Documentation", "/docs"],
+      ["User guides", "/guides"],
+      ["Tutorials", "/tutorials"],
+      ["FAQ", "/faq"],
+      ["API", "/api"],
+    ],
+  },
+  {
+    title: "Sloth Planner",
+    links: [
+      ["About", "/about"],
+      ["Mission", "/mission"],
+      ["Blog", "/blog"],
+      ["Support", "/support"],
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      ["Privacy policy", "/privacy"],
+      ["Terms of service", "/terms"],
+    ],
+  },
+]
+
+// Same canopy surface as the app sidebar, so the site is bookended in green.
 export function SiteFooter() {
   return (
-    <footer className="border-t bg-secondary">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-3 md:px-6">
-        <div className="flex items-start gap-3">
-          <Image src="/sloth-planner-logo.png" alt="" width={40} height={40} className="rounded" />
-          <div>
-            <div className="text-lg font-semibold">Sloth Planner</div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              AI-ready planning assistant that helps you manage tasks, schedule, and goals—calmly.
-            </p>
-            <div className="mt-3 text-sm">Your account and data are stored securely with Firebase, and only you can see them.</div>
+    <footer className="bg-sidebar text-sidebar-foreground">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-3 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
+        <div className="max-w-xs sm:col-span-3 lg:col-span-1">
+          <div className="flex items-center gap-3">
+            <Image src="/sloth-planner-logo.png" alt="" width={36} height={36} className="rounded-xl" />
+            <span className="font-display text-xl font-semibold">Sloth Planner</span>
           </div>
+          <p className="mt-4 text-sm leading-relaxed text-sidebar-foreground/65">
+            Tasks, notes, classes and goals in one unhurried place. Add a passphrase and only you can read it.
+          </p>
         </div>
-        <div>
-          <div className="font-medium">Resources</div>
-          <ul className="mt-2 space-y-2 text-sm">
-            <li>
-              <Link className="hover:underline" href="/docs">
-                Documentation
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:underline" href="/guides">
-                User Guides
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:underline" href="/tutorials">
-                Tutorials
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:underline" href="/faq">
-                FAQ
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:underline" href="/api">
-                API Docs (coming)
-              </Link>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <div className="font-medium">Company</div>
-          <ul className="mt-2 space-y-2 text-sm">
-            <li>
-              <Link className="hover:underline" href="/about">
-                About Us
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:underline" href="/mission">
-                Our Mission
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:underline" href="/blog">
-                Blog
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:underline" href="/privacy">
-                Privacy Policy
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:underline" href="/terms">
-                Terms of Service
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:underline" href="/support">
-                Support
-              </Link>
-            </li>
-          </ul>
-        </div>
+        {groups.map((g) => (
+          <nav key={g.title} aria-label={g.title}>
+            <div className="text-sm font-semibold">{g.title}</div>
+            <ul className="mt-3 space-y-2 text-sm text-sidebar-foreground/65">
+              {g.links.map(([label, href]) => (
+                <li key={href}>
+                  <Link className="transition-colors hover:text-sidebar-foreground" href={href}>
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
       </div>
     </footer>
   )

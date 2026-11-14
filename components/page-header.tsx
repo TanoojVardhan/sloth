@@ -13,20 +13,18 @@ interface PageHeaderProps {
 // than each page getting its own bright gradient.
 export function PageHeader({ icon: Icon, title, description, children }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 border-b border-border/70 pb-6 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex items-start gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="space-y-1 pt-0.5">
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground text-balance">{title}</h1>
-          {description && (
-            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground text-pretty">{description}</p>
-          )}
-        </div>
+    <div className="flex flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-1.5">
+        <h1 className="flex items-center gap-3 font-display text-3xl font-semibold text-foreground text-balance sm:text-4xl">
+          <Icon className="h-6 w-6 shrink-0 text-primary/70 sm:h-7 sm:w-7" aria-hidden />
+          {title}
+        </h1>
+        {description && (
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground text-pretty">{description}</p>
+        )}
       </div>
 
-      {children && <div className="flex items-center gap-2">{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
   )
 }

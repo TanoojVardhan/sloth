@@ -6,92 +6,101 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.98 0.01 85); /* sand */
-  --foreground: oklch(0.25 0.02 60); /* dark brown text */
-  --card: oklch(0.99 0.005 85);
+  /* Canopy palette: cool mist paper, deep forest ink, moss for actions,
+     hibiscus (--bloom) reserved for "today / now", bark from the logo. */
+  --background: oklch(0.972 0.012 145); /* mist */
+  --foreground: oklch(0.22 0.03 160); /* canopy ink */
+  --card: oklch(0.993 0.005 145);
   --card-foreground: var(--foreground);
   --popover: var(--card);
   --popover-foreground: var(--foreground);
-  --primary: oklch(0.35 0.03 60); /* brand brown */
-  --primary-foreground: oklch(0.98 0.01 85);
-  --secondary: oklch(0.95 0.01 85); /* light sand */
+  --primary: oklch(0.38 0.07 155); /* moss */
+  --primary-foreground: oklch(0.98 0.012 145);
+  --secondary: oklch(0.94 0.018 145); /* lichen */
   --secondary-foreground: var(--foreground);
-  --muted: oklch(0.93 0.01 85);
-  --muted-foreground: oklch(0.55 0.02 60);
-  --accent: oklch(0.85 0.06 145); /* leaf green */
-  --accent-foreground: oklch(0.2 0.03 60);
-  --destructive: oklch(0.6 0.18 27); /* warm red for alerts */
+  --muted: oklch(0.945 0.014 145);
+  --muted-foreground: oklch(0.47 0.025 155);
+  --accent: oklch(0.91 0.045 145); /* young leaf */
+  --accent-foreground: oklch(0.26 0.05 155);
+  --destructive: oklch(0.56 0.2 27);
   --destructive-foreground: oklch(0.98 0.01 85);
-  --warning: oklch(0.78 0.13 70); /* warm amber, in-family with the brand */
-  --warning-foreground: oklch(0.3 0.06 60);
-  --border: oklch(0.9 0.01 85);
-  --input: oklch(0.92 0.01 85);
-  --ring: oklch(0.7 0.02 60);
+  --warning: oklch(0.8 0.13 80);
+  --warning-foreground: oklch(0.32 0.07 70);
+  --bloom: oklch(0.6 0.19 8); /* hibiscus */
+  --bloom-foreground: oklch(0.99 0.01 8);
+  --bark: oklch(0.4 0.06 50);
+  --border: oklch(0.89 0.018 145);
+  --input: oklch(0.86 0.02 145);
+  --ring: oklch(0.55 0.09 155);
 
-  /* charts kept similar but aligned to palette */
-  --chart-1: oklch(0.62 0.1 145); /* green */
-  --chart-2: oklch(0.7 0.1 250); /* indigo accent (rare use) */
-  --chart-3: oklch(0.75 0.15 30); /* orange */
-  --chart-4: oklch(0.55 0.15 15); /* red */
-  --chart-5: oklch(0.4 0.02 60); /* deep brown */
+  --chart-1: oklch(0.55 0.11 150); /* moss */
+  --chart-2: oklch(0.62 0.1 240); /* sky */
+  --chart-3: oklch(0.76 0.13 80); /* gold */
+  --chart-4: oklch(0.6 0.19 8); /* hibiscus */
+  --chart-5: oklch(0.4 0.06 50); /* bark */
 
-  --radius: 0.625rem;
+  --radius: 0.875rem;
 
-  /* sidebar */
-  --sidebar: oklch(0.985 0.008 85);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(0.96 0.01 85);
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
+  /* The sidebar is the canopy: dark in both themes. */
+  --sidebar: oklch(0.24 0.035 160);
+  --sidebar-foreground: oklch(0.93 0.02 140);
+  --sidebar-primary: oklch(0.87 0.09 140);
+  --sidebar-primary-foreground: oklch(0.22 0.04 160);
+  --sidebar-accent: oklch(0.31 0.04 160);
+  --sidebar-accent-foreground: oklch(0.97 0.015 140);
+  --sidebar-border: oklch(0.33 0.035 160);
+  --sidebar-ring: oklch(0.7 0.09 145);
 }
 
 .dark {
-  /* Dark mode stays in the same sand/brown/leaf-green family as light mode,
-     just inverted in lightness, instead of falling back to generic greys. */
-  --background: oklch(0.18 0.016 55); /* espresso */
-  --foreground: oklch(0.95 0.014 85); /* warm sand text */
-  --card: oklch(0.22 0.018 55);
+  --background: oklch(0.2 0.028 160); /* canopy at night */
+  --foreground: oklch(0.94 0.02 145);
+  --card: oklch(0.235 0.03 160);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.22 0.018 55);
+  --popover: oklch(0.245 0.03 160);
   --popover-foreground: var(--foreground);
-  --primary: oklch(0.9 0.025 85); /* sand, inverted for contrast on dark bg */
-  --primary-foreground: oklch(0.2 0.02 55);
-  --secondary: oklch(0.27 0.018 55);
+  --primary: oklch(0.82 0.1 145);
+  --primary-foreground: oklch(0.19 0.03 160);
+  --secondary: oklch(0.28 0.03 160);
   --secondary-foreground: var(--foreground);
-  --muted: oklch(0.26 0.016 55);
-  --muted-foreground: oklch(0.68 0.018 75);
-  --accent: oklch(0.4 0.08 145); /* leaf green, deepened for dark bg */
-  --accent-foreground: oklch(0.95 0.02 145);
-  --destructive: oklch(0.52 0.17 27);
-  --destructive-foreground: oklch(0.97 0.012 85);
-  --warning: oklch(0.45 0.1 70);
-  --warning-foreground: oklch(0.95 0.03 80);
-  --border: oklch(0.32 0.018 55);
-  --input: oklch(0.3 0.018 55);
-  --ring: oklch(0.55 0.03 70);
+  --muted: oklch(0.27 0.028 160);
+  --muted-foreground: oklch(0.71 0.025 145);
+  --accent: oklch(0.31 0.05 150);
+  --accent-foreground: oklch(0.95 0.03 145);
+  --destructive: oklch(0.6 0.19 25);
+  --destructive-foreground: oklch(0.98 0.01 85);
+  --warning: oklch(0.48 0.1 75);
+  --warning-foreground: oklch(0.95 0.04 85);
+  --bloom: oklch(0.72 0.16 8);
+  --bloom-foreground: oklch(0.18 0.03 8);
+  --bark: oklch(0.55 0.06 55);
+  --border: oklch(0.33 0.03 160);
+  --input: oklch(0.37 0.03 160);
+  --ring: oklch(0.62 0.08 150);
 
-  --chart-1: oklch(0.65 0.1 145);
-  --chart-2: oklch(0.62 0.09 250);
-  --chart-3: oklch(0.72 0.15 40);
-  --chart-4: oklch(0.62 0.16 20);
-  --chart-5: oklch(0.78 0.02 85);
+  --chart-1: oklch(0.72 0.12 148);
+  --chart-2: oklch(0.7 0.1 240);
+  --chart-3: oklch(0.8 0.12 82);
+  --chart-4: oklch(0.72 0.16 8);
+  --chart-5: oklch(0.65 0.06 55);
 
-  --sidebar: oklch(0.15 0.016 55);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(0.25 0.018 55);
+  --sidebar: oklch(0.16 0.024 160);
+  --sidebar-foreground: oklch(0.92 0.02 145);
+  --sidebar-primary: oklch(0.82 0.1 145);
+  --sidebar-primary-foreground: oklch(0.19 0.03 160);
+  --sidebar-accent: oklch(0.23 0.025 160);
   --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: var(--border);
+  --sidebar-border: oklch(0.25 0.025 160);
   --sidebar-ring: var(--ring);
 }
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage), var(--font-geist-sans), sans-serif;
+  --color-bloom: var(--bloom);
+  --color-bloom-foreground: var(--bloom-foreground);
+  --color-bark: var(--bark);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -137,11 +146,32 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 25%, transparent);
   }
 }
 
 @layer utilities {
+  /* Landing hero: each day's list lowers from the branch, once, slowly. */
+  @keyframes hang-down {
+    from { transform: scaleY(0.2); opacity: 0; }
+    to { transform: scaleY(1); opacity: 1; }
+  }
+  .animate-hang {
+    transform-origin: top center;
+    animation: hang-down 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-hang { animation: none; }
+  }
+
   @keyframes alarm-ring {
     0%, 100% { transform: rotate(0deg); }
     10%, 30% { transform: rotate(-12deg); }

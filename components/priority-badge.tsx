@@ -5,5 +5,5 @@ export function PriorityBadge({ priority }: { priority: "low" | "medium" | "high
       : priority === "medium"
         ? "bg-warning/15 text-warning-foreground"
         : "bg-accent/15 text-accent-foreground"
-  return <span className={`rounded px-2 py-1 text-xs font-medium capitalize ${styles}`}>{priority}</span>
+  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${styles}`}>{priority}</span>
 }

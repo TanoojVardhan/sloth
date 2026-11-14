@@ -252,7 +252,7 @@ export default function AssignmentsPage() {
                   className={cn(
                     "shrink-0 text-xs font-medium",
                     due.tone === "overdue" && !isFinished(a) && "text-destructive",
-                    due.tone === "soon" && !isFinished(a) && "text-amber-600 dark:text-amber-400",
+                    due.tone === "soon" && !isFinished(a) && "text-warning-foreground",
                     (due.tone === "later" || due.tone === "none" || isFinished(a)) && "text-muted-foreground",
                   )}
                 >

@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { deleteField } from "firebase/firestore"
 import { AlertCircle, Copy, RefreshCw, Settings2, Sheet } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Card } from "@/components/ui/card"
@@ -9,14 +8,22 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { updateUser } from "@/lib/firebase-db"
+import { syncSheetClasses, updateUser } from "@/lib/firebase-db"
+import { mutate } from "swr"
 import { runTimetableSync, TIMETABLE_SYNCED_EVENT, type SyncResult } from "@/lib/timetable-sync"
 import { resolveSource, templateAsTsv } from "@/lib/timetable-sheet"
 import { timeAgo } from "@/lib/student"
 import { cn } from "@/lib/utils"
 
-// Firestore needs deleteField() to clear a value; the User type just calls it "string[]".
-const CLEAR = deleteField() as unknown as string[]
+// null clears a stored value (the encrypted user data treats null as "remove").
+const CLEAR = null as unknown as string[]
+
+/** Disconnecting removes every class that came from the sheet; classes you added by hand stay. */
+async function removeSheetTimetable(userId: string) {
+  await syncSheetClasses(userId, [])
+  await updateUser(userId, { timetableSheetUrl: null, specializations: CLEAR, timetableOptions: CLEAR, timetableUntil: null })
+  await mutate("classes")
+}
 
 export function TimetableSheetPanel() {
   const { user, refreshUser } = useAuth()
@@ -195,7 +202,7 @@ export function TimetableSheetPanel() {
         forced={needsPick}
         onClose={() => setShowPick(false)}
         onDisconnect={async () => {
-          await updateUser(user.userId, { timetableSheetUrl: null, specializations: CLEAR })
+          await removeSheetTimetable(user.userId)
           await refreshUser()
           setShowPick(false)
         }}
@@ -247,7 +254,7 @@ function ConnectDialog({
       // A different sheet has different subjects, so ask again.
       await updateUser(user.userId, {
         timetableSheetUrl: value.trim(),
-        timetableUntil: (until || deleteField()) as unknown as string,
+        timetableUntil: until || null,
         ...(changed ? { specializations: CLEAR } : {}),
       })
       await onSaved()
@@ -312,7 +319,7 @@ function ConnectDialog({
               onClick={async () => {
                 if (!user) return
                 setSaving(true)
-                await updateUser(user.userId, { timetableSheetUrl: null, specializations: CLEAR }).catch(() => undefined)
+                await removeSheetTimetable(user.userId).catch(() => undefined)
                 await onSaved()
                 setSaving(false)
                 onClose()

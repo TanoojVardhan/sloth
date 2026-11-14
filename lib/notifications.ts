@@ -20,12 +20,38 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 
 export function showNotification(title: string, options?: NotificationOptions) {
   if (!isNotificationSupported() || Notification.permission !== "granted") return
-  try {
-    new Notification(title, { icon: "/sloth-planner-logo.png", ...options })
-  } catch {
-    // Some browsers (notably iOS Safari) throw on `new Notification` even
-    // when permission is "granted" — fail quietly, it's a nice-to-have.
+  const opts: NotificationOptions = { icon: "/icon-192.png", badge: "/icon-192.png", ...options }
+  const fallback = () => {
+    try {
+      new Notification(title, opts)
+    } catch {
+      // Some browsers (notably iOS Safari) throw on `new Notification` even
+      // when permission is "granted" — fail quietly, it's a nice-to-have.
+    }
   }
+  // Through the service worker when there is one: works in the installed app
+  // and lets a click bring the app window back.
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .getRegistration()
+      .then((reg) => (reg ? reg.showNotification(title, opts) : fallback()))
+      .catch(fallback)
+    return
+  }
+  fallback()
+}
+
+// Fires a notification only once ever for a given key (per device).
+export function notifyOnce(key: string, title: string, options?: NotificationOptions) {
+  if (typeof window === "undefined") return
+  const storageKey = `sloth:notified-once:${key}`
+  try {
+    if (window.localStorage.getItem(storageKey)) return
+    window.localStorage.setItem(storageKey, "1")
+  } catch {
+    // ignore
+  }
+  showNotification(title, options)
 }
 
 // De-dupes a notification so it only fires once per calendar day for a given

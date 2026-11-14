@@ -13,14 +13,11 @@ export function SiteHeader() {
   const { user, loading } = useAuth()
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
-      <div className="flex h-16 items-center justify-between gap-4 px-6 lg:px-8">
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
         <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-3">
-          <Image src="/sloth-planner-logo.png" alt="Sloth Planner" width={36} height={36} className="rounded-lg" />
-          <div className="hidden sm:flex flex-col">
-            <span className="font-serif text-lg font-semibold text-foreground">Sloth Planner</span>
-            <span className="text-xs text-muted-foreground">Stay Organized</span>
-          </div>
+          <Image src="/sloth-planner-logo.png" alt="Sloth Planner" width={36} height={36} className="rounded-xl" />
+          <span className="hidden font-display text-xl font-semibold text-foreground sm:inline">Sloth Planner</span>
         </Link>
 
         <div className="flex items-center gap-3">

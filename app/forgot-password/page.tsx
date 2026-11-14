@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import Image from "next/image"
@@ -46,16 +46,12 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2 text-center">
-            <Image src="/sloth-planner-logo.png" alt="Sloth Planner" width={64} height={64} className="rounded-lg" />
-            <h1 className="font-serif text-2xl font-semibold">Reset your password</h1>
+            <Image src="/sloth-planner-logo.png" alt="Sloth Planner" width={72} height={72} className="rounded-2xl" />
+            <h1 className="font-display text-3xl font-semibold">Reset your password</h1>
             <p className="text-sm text-muted-foreground">We&apos;ll email you a link to choose a new one</p>
           </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Forgot password</CardTitle>
-              <CardDescription>Enter the email on your account</CardDescription>
-            </CardHeader>
             <CardContent>
               {sent ? (
                 <Alert>

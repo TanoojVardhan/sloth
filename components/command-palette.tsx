@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Command } from "cmdk"
-import { CalendarDays, CheckSquare, FileText, Folder, Plus, Search, Settings, Timer, Target, LayoutDashboard, GraduationCap, ClipboardList } from "lucide-react"
+import { CalendarDays, CheckSquare, FileText, Folder, Plus, Search, Settings, Timer, Target, LayoutDashboard, GraduationCap, ClipboardList, BarChart3 } from "lucide-react"
 import { useEvents, useNotes, useProjects, useTasks } from "@/hooks/use-firebase-data"
 import { useAuth } from "@/components/auth-provider"
 import { hasTool } from "@/lib/student"
@@ -100,6 +100,7 @@ export function CommandPalette() {
               ["/projects", "Projects", Folder],
               ["/goals", "Goals", Target],
               ["/focus", "Focus", Timer],
+              ["/insights", "Insights", BarChart3],
               ...(hasTool(user?.occupation, "timetable") ? ([["/timetable", "Timetable", GraduationCap]] as const) : []),
               ...(hasTool(user?.occupation, "assignments") ? ([["/assignments", "Assignments", ClipboardList]] as const) : []),
               ["/settings", "Settings", Settings],

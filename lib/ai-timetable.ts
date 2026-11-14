@@ -1,4 +1,5 @@
 import { createHash } from "crypto"
+import { modelChain } from "./gemini-models"
 
 /**
  * Reads a timetable in ANY layout (grid with days across, days down, one sheet
@@ -10,17 +11,18 @@ import { createHash } from "crypto"
  * class against that inventory, then audit the result for anything missed.
  */
 
-const MODEL_CHAIN = (() => {
-  const chain = [
-    "gemini-2.5-flash",
-    "gemini-3-flash-preview",
-    "gemini-3.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-3.5-flash-lite",
-  ]
-  const env = process.env.GEMINI_MODEL
-  return env ? [env, ...chain.filter((m) => m !== env)] : chain
-})()
+// Reading a messy sheet needs the stronger models first; every other text model
+// the key can use follows automatically, see lib/gemini-models.ts.
+const PREFERRED_MODELS = [
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3-flash-preview",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash-lite",
+]
 
 export const FLAT_HEADER = [
   "Specialization",
@@ -201,7 +203,7 @@ type Step = { items: Item[] } | { error: "busy" | "failed" }
 /** Runs a prompt through the model chain; first usable answer wins. */
 async function askRaw(apiKey: string, prompt: string, schema: object): Promise<{ text: string } | { error: "busy" | "failed" }> {
   let busy = false
-  for (const model of MODEL_CHAIN) {
+  for (const model of await modelChain(apiKey, PREFERRED_MODELS)) {
     try {
       const res = await callModel(apiKey, model, prompt, schema)
       if (res.status === 429 || res.status === 503) {

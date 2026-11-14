@@ -606,7 +606,7 @@ export default function NotesPage() {
       <aside className={cn("w-full shrink-0 flex-col border-r bg-muted/30 md:flex md:w-72", selectedId ? "hidden" : "flex")}>
         <div className="space-y-3 border-b p-3">
           <div className="flex items-center justify-between">
-            <h1 className="font-serif text-lg font-semibold">Notes</h1>
+            <h1 className="font-display text-lg font-semibold">Notes</h1>
             <div className="relative">
               <Button size="sm" onClick={() => setTemplateMenuFor(templateMenuFor ? null : "root")} className="h-8 gap-1">
                 <Plus className="h-4 w-4" /> New
@@ -745,7 +745,7 @@ export default function NotesPage() {
         {!selected ? (
           <div className="flex-1 overflow-y-auto p-6 md:p-10">
             <div className="mx-auto max-w-2xl">
-              <h2 className="font-serif text-2xl font-semibold">Your notes, linked together</h2>
+              <h2 className="font-display text-2xl font-semibold">Your notes, linked together</h2>
               <p className="mt-2 text-muted-foreground">
                 Write in markdown, nest pages inside pages, link them with <code className="rounded bg-muted px-1">[[Page title]]</code>, and turn any to-do
                 list into real tasks. Type <code className="rounded bg-muted px-1">/</code> on a new line for blocks.
@@ -896,7 +896,7 @@ export default function NotesPage() {
                     }
                   }}
                   placeholder="Untitled"
-                  className="mt-3 w-full bg-transparent font-serif text-3xl font-semibold outline-none placeholder:text-muted-foreground/50 md:text-4xl"
+                  className="mt-3 w-full bg-transparent font-display text-3xl font-semibold outline-none placeholder:text-muted-foreground/50 md:text-4xl"
                 />
 
                 {/* Properties */}

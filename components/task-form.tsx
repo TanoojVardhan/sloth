@@ -80,7 +80,7 @@ export function TaskForm({ initial, onSubmit, submittingText = "Saving..." }: Pr
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="due">Due Date</Label>
+        <Label htmlFor="due">Due date</Label>
         <Input id="due" type="date" value={dueDate ?? ""} onChange={(e) => setDueDate(e.target.value || null)} />
       </div>
 

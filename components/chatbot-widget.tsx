@@ -23,7 +23,7 @@ const WELCOME: ChatMessage = {
 }
 
 export function ChatbotWidget() {
-  const { user } = useAuth()
+  const { user, dataReady } = useAuth()
   const { tasks, createTask } = useTasks()
   const { events, createEvent } = useEvents()
   const { createGoal } = useGoals()
@@ -116,15 +116,22 @@ export function ChatbotWidget() {
     setInput("")
     setIsSending(true)
 
+    let share = false
+    try {
+      share = localStorage.getItem("sloth.ai.share") === "1"
+    } catch {
+      /* private mode: stay off */
+    }
     try {
       const res = await fetch("/api/ai/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
-          projects: projects.map((p) => ({ projectId: p.projectId, name: p.name })),
-          tasks: tasks.map((t) => ({ title: t.title, status: t.status, priority: t.priority, dueDate: t.dueDate })),
-          events: events.map((e) => ({ title: e.title, start: e.start, location: e.location })),
+          // Your planner data only goes to the AI if you switched that on in Settings.
+          projects: share ? projects.map((p) => ({ projectId: p.projectId, name: p.name })) : [],
+          tasks: share ? tasks.map((t) => ({ title: t.title, status: t.status, priority: t.priority, dueDate: t.dueDate })) : [],
+          events: share ? events.map((e) => ({ title: e.title, start: e.start, location: e.location })) : [],
           history: history.map((h) => ({ role: h.role, content: h.content })),
         }),
       })
@@ -141,6 +148,9 @@ export function ChatbotWidget() {
       setIsSending(false)
     }
   }
+
+  // Signed in but still locked: nothing to show yet.
+  if (user && !dataReady) return null
 
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-50">
@@ -191,8 +201,8 @@ export function ChatbotWidget() {
             >
               {isRecording && !micError && (
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
                 </span>
               )}
               {micError ?? "Listening — tap the mic again to stop."}
@@ -203,7 +213,7 @@ export function ChatbotWidget() {
             <button
               className={cn(
                 "grid h-9 w-9 shrink-0 place-items-center rounded-full transition-colors disabled:opacity-50",
-                isRecording ? "bg-red-500 text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                isRecording ? "bg-destructive text-white" : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
               )}
               onClick={toggleMic}
               disabled={isSending}

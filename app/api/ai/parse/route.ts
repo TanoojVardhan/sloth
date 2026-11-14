@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
+import { modelChain } from "@/lib/gemini-models"
 
 export const runtime = "nodejs"
 
-// Free-tier Gemini models, ordered by daily-quota headroom (highest first,
-// per Google AI Studio's own "Rate limits by model" dashboard). Each model
-// has its own independent RPM/TPM/RPD quota, so when one is exhausted we
-// fall through to the next instead of failing the request. Pro/preview
-// models that showed 0 free-tier quota are left out.
-const DEFAULT_MODEL_CHAIN = [
+// Tried first, in this order: free-tier models with the most daily-quota headroom
+// (per Google AI Studio's "Rate limits by model"). Every other text model the key
+// can use follows automatically, see lib/gemini-models.ts. Each model has its own
+// quota, so when one is exhausted or retired we fall through to the next.
+const PREFERRED_MODELS = [
   "gemini-3.5-flash-lite",
   "gemini-3.1-flash-lite",
   "gemini-2.5-flash-lite",
@@ -16,16 +16,7 @@ const DEFAULT_MODEL_CHAIN = [
   "gemini-3.6-flash",
   "gemini-3.5-flash",
   "gemini-3-flash-preview",
-  "gemini-2.5-flash",
 ]
-
-// If GEMINI_MODEL is set, try it first, then fall back through the rest of
-// the chain (skipping a duplicate if it's already in the default list).
-const MODEL_CHAIN = (() => {
-  const envModel = process.env.GEMINI_MODEL
-  if (!envModel) return DEFAULT_MODEL_CHAIN
-  return [envModel, ...DEFAULT_MODEL_CHAIN.filter((m) => m !== envModel)]
-})()
 
 type ProjectHint = { projectId: string; name: string }
 type TaskHint = { title: string; status: string; priority: string; dueDate?: string | null }
@@ -160,10 +151,10 @@ async function callGeminiWithModel(apiKey: string, model: string, prompt: string
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
@@ -193,9 +184,8 @@ async function callGeminiWithModel(apiKey: string, model: string, prompt: string
 }
 
 /**
- * Tries each model in MODEL_CHAIN in order, falling through to the next
- * whenever the current one comes back rate-limited (429) or overloaded
- * (503) — each free-tier model has its own separate daily/per-minute quota,
+ * Tries each available model in order, falling through to the next
+ * whenever the current one fails for any reason — each free-tier model has its own separate daily/per-minute quota,
  * so this lets the assistant keep working well past any single model's
  * limit. Returns the first successful response, or the last failure if
  * every model in the chain is exhausted.
@@ -203,14 +193,14 @@ async function callGeminiWithModel(apiKey: string, model: string, prompt: string
 async function callGemini(apiKey: string, prompt: string): Promise<{ res: Response; model: string }> {
   let lastResult: { res: Response; model: string } | null = null
 
-  for (const model of MODEL_CHAIN) {
+  for (const model of await modelChain(apiKey, PREFERRED_MODELS)) {
     const res = await callGeminiWithModel(apiKey, model, prompt)
 
-    if (res.ok || (res.status !== 429 && res.status !== 503)) {
-      return { res, model }
-    }
+    // Any failure moves on: rate limits, overload, a retired model, or one that
+    // rejects this request shape. The next model may well answer.
+    if (res.ok) return { res, model }
 
-    console.warn(`Gemini model ${model} unavailable (${res.status}) — falling back to next model`)
+    console.warn(`Gemini model ${model} failed (${res.status}), trying the next model`)
     lastResult = { res, model }
   }
 

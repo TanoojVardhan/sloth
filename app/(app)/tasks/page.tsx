@@ -55,7 +55,7 @@ function TaskTable({
   return (
     <Card className="overflow-hidden">
       <table className="w-full text-sm">
-        <thead className="border-b bg-muted/50 text-left text-xs uppercase text-muted-foreground">
+        <thead className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
           <tr>
             <th className="p-3 font-medium">Done</th>
             <th className="p-3 font-medium">Title</th>
@@ -228,7 +228,7 @@ export default function TasksPage() {
         description="Organize and track your daily work with priorities and due dates across three stages"
       >
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-lg border p-1">
+          <div className="flex items-center rounded-full border bg-card p-0.5">
             <Button
               size="sm"
               variant={view === "board" ? "secondary" : "ghost"}
@@ -249,9 +249,9 @@ export default function TasksPage() {
             </Button>
           </div>
           {!isAdding && (
-            <Button onClick={() => setIsAdding(true)} size="lg" className="shadow-lg">
+            <Button onClick={() => setIsAdding(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Task
+              Add task
             </Button>
           )}
         </div>
@@ -282,10 +282,10 @@ export default function TasksPage() {
       )}
 
       {isAdding && (
-        <Card className="p-6 shadow-md">
+        <Card className="p-6">
           <form onSubmit={handleAddTask} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Task Title</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
                 value={title}
@@ -313,7 +313,7 @@ export default function TasksPage() {
               <div className="space-y-2">
                 <Label htmlFor="dueDate" className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  Due Date
+                  Due date
                 </Label>
                 <Input
                   id="dueDate"
@@ -398,7 +398,7 @@ export default function TasksPage() {
                 ) : (
                   <>
                     <Plus className="mr-2 h-4 w-4" />
-                    Create Task
+                    Create task
                   </>
                 )}
               </Button>
@@ -424,12 +424,12 @@ export default function TasksPage() {
           <Card className="p-4 border-2">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
               <Circle className="h-5 w-5 text-chart-2" />
-              To Do
+              To do
               <span className="ml-auto text-sm font-normal text-muted-foreground">{todoTasks.length}</span>
             </h2>
             <div className="space-y-3">
               {todoRender.map(({ task, indent }) => (
-                <div key={task.taskId} style={{ marginLeft: indent * 20 }} className={`group rounded-lg border-2 bg-card p-4 transition-all hover:shadow-md hover:border-chart-2/50 ${indent > 0 ? "bg-muted/30" : ""}`}>
+                <div key={task.taskId} style={{ marginLeft: indent * 20 }} className={`group rounded-lg border bg-card p-4 transition-colors hover:border-chart-2/50 ${indent > 0 ? "bg-muted/30" : ""}`}>
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <button type="button" onClick={() => setEditingTask(task)} className="mb-1 block text-left text-base font-semibold break-words hover:underline">{task.title}</button>
@@ -503,12 +503,12 @@ export default function TasksPage() {
           <Card className="p-4 border-2">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
               <Circle className="h-5 w-5 fill-warning text-warning" />
-              In Progress
+              In progress
               <span className="ml-auto text-sm font-normal text-muted-foreground">{inProgressTasks.length}</span>
             </h2>
             <div className="space-y-3">
               {inProgressRender.map(({ task, indent }) => (
-                <div key={task.taskId} style={{ marginLeft: indent * 20 }} className={`group rounded-lg border-2 bg-card p-4 transition-all hover:shadow-md hover:border-warning/50 ${indent > 0 ? "bg-muted/30" : ""}`}>
+                <div key={task.taskId} style={{ marginLeft: indent * 20 }} className={`group rounded-lg border bg-card p-4 transition-colors hover:border-warning/50 ${indent > 0 ? "bg-muted/30" : ""}`}>
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <button type="button" onClick={() => setEditingTask(task)} className="mb-1 block text-left text-base font-semibold break-words hover:underline">{task.title}</button>
@@ -578,7 +578,7 @@ export default function TasksPage() {
             </h2>
             <div className="space-y-3">
               {doneRender.map(({ task, indent }) => (
-                <div key={task.taskId} style={{ marginLeft: indent * 20 }} className={`group rounded-lg border-2 bg-card p-4 transition-all hover:shadow-md hover:border-accent/50 ${indent > 0 ? "bg-muted/30" : ""}`}>
+                <div key={task.taskId} style={{ marginLeft: indent * 20 }} className={`group rounded-lg border bg-card p-4 transition-colors hover:border-accent/50 ${indent > 0 ? "bg-muted/30" : ""}`}>
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <button type="button" onClick={() => setEditingTask(task)} className="mb-1 block text-left text-base font-semibold break-words text-muted-foreground line-through hover:underline">{task.title}</button>

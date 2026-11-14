@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/components/auth-provider"
-import { useTasks, useEvents } from "@/hooks/use-firebase-data"
-import { getNotificationPermission, notifyOnceToday, showNotification } from "@/lib/notifications"
+import { useTasks, useEvents, useClasses, useAssignments } from "@/hooks/use-firebase-data"
+import { getNotificationPermission, notifyOnce, notifyOnceToday, showNotification } from "@/lib/notifications"
+import { entriesForDate, minutesOf, format12, isoDate, isFinished, dueAt } from "@/lib/student"
 import { AlarmPopup, type AlarmEvent } from "@/components/alarm-popup"
 import { formatEventTime } from "@/lib/format"
 
+const CLASS_LEAD_MIN = 10 // remind this many minutes before a class starts
 const CHECK_INTERVAL_MS = 15 * 1000 // 15s — fine-grained enough for "at start time" / "5 min before" reminders
 
 /**
@@ -25,6 +27,8 @@ export function NotificationManager() {
   const { user } = useAuth()
   const { tasks } = useTasks()
   const { events } = useEvents()
+  const { classes } = useClasses()
+  const { assignments } = useAssignments()
 
   const browserNotifsEnabled = Boolean(user?.browserNotificationsEnabled) && getNotificationPermission() === "granted"
 
@@ -48,6 +52,34 @@ export function NotificationManager() {
               tag: `task:${task.taskId}`,
             })
           }
+        }
+      }
+
+      if (browserNotifsEnabled) {
+        // Classes: one reminder shortly before each class that is actually on today.
+        const nowMin = now.getHours() * 60 + now.getMinutes()
+        for (const entry of entriesForDate(classes, now)) {
+          if (entry.state === "cancelled") continue
+          const diff = minutesOf(entry.slot.startTime) - nowMin
+          if (diff < 0 || diff > CLASS_LEAD_MIN) continue
+          notifyOnce(`class:${entry.slot.classId}:${isoDate(now)}`, diff === 0 ? "Class starting now" : `Class in ${diff} min`, {
+            body: `${entry.slot.subject} at ${format12(entry.slot.startTime)}${entry.slot.location ? ` · ${entry.slot.location}` : ""}`,
+            tag: `class:${entry.slot.classId}`,
+            data: { url: "/timetable" },
+          })
+        }
+
+        // Assignments: due tomorrow, due today, and an hour before a set due time.
+        const tomorrow = new Date(now)
+        tomorrow.setDate(now.getDate() + 1)
+        for (const a of assignments) {
+          if (isFinished(a) || !a.dueDate) continue
+          const opts = { body: a.subject ? `${a.title} · ${a.subject}` : a.title, tag: `asg:${a.assignmentId}`, data: { url: "/assignments" } }
+          if (a.dueDate === isoDate(now)) notifyOnceToday(`asg:${a.assignmentId}`, "Assignment due today", opts)
+          else if (a.dueDate === isoDate(tomorrow)) notifyOnceToday(`asg-tmr:${a.assignmentId}`, "Assignment due tomorrow", opts)
+          const due = a.dueTime ? dueAt(a) : null
+          const left = due ? due.getTime() - now.getTime() : -1
+          if (due && left > 0 && left <= 60 * 60000) notifyOnce(`asg-hour:${a.assignmentId}:${a.dueDate}${a.dueTime}`, "Assignment due within the hour", opts)
         }
       }
 
@@ -111,7 +143,7 @@ export function NotificationManager() {
     checkNow()
     const interval = setInterval(checkNow, CHECK_INTERVAL_MS)
     return () => clearInterval(interval)
-  }, [browserNotifsEnabled, tasks, events])
+  }, [browserNotifsEnabled, tasks, events, classes, assignments])
 
   function advanceQueue() {
     const next = alarmQueue.current.shift() ?? null

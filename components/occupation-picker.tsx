@@ -68,7 +68,7 @@ export function OccupationOnboarding() {
     <Dialog open onOpenChange={() => undefined}>
       <DialogContent className="max-w-xl" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl">What do you do?</DialogTitle>
+          <DialogTitle className="font-display text-xl">What do you do?</DialogTitle>
           <DialogDescription>
             Sloth Planner adds the tools that fit your day. You can change this any time in Settings.
           </DialogDescription>
