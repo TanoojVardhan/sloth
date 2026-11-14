@@ -4,6 +4,8 @@ import {
   signOut,
   signInWithPopup,
   GoogleAuthProvider,
+  OAuthProvider,
+  type AuthProvider,
   EmailAuthProvider,
   linkWithCredential,
   onAuthStateChanged,
@@ -66,38 +68,33 @@ export async function signInWithEmail(email: string, password: string): Promise<
   }
 }
 
-export async function signInWithGoogle(): Promise<User> {
+/** Popup sign-in with Google or Apple. The first sign-in creates the user document. */
+async function signInWithProvider(provider: AuthProvider, label: string): Promise<User> {
   try {
-    const userCredential = await signInWithPopup(auth, googleProvider)
-    const firebaseUser = userCredential.user
+    const firebaseUser = (await signInWithPopup(auth, provider)).user
+    const existing = await getUser(firebaseUser.uid)
+    if (existing) return existing
 
-    // Check if user exists in Firestore
-    let userData = await getUser(firebaseUser.uid)
-
-    if (!userData) {
-      // Create user document in Firestore
-      const newUserData: Omit<User, "userId"> = {
-        email: firebaseUser.email || "",
-        name: firebaseUser.displayName || undefined,
-      }
-
-      await createUser(firebaseUser.uid, newUserData)
-
-      userData = {
-        userId: firebaseUser.uid,
-        email: firebaseUser.email || "",
-        name: firebaseUser.displayName || undefined,
-      }
-    }
-
-    return userData
+    const email = firebaseUser.email || ""
+    const name = firebaseUser.displayName || undefined
+    await createUser(firebaseUser.uid, { email, name })
+    return { userId: firebaseUser.uid, email, name }
   } catch (error) {
     const err = error as { code?: string; message?: string }
     throw {
       code: err.code || "AUTH_ERROR",
-      message: err.message || "Google sign in failed",
+      message: err.message || `${label} sign in failed`,
     }
   }
+}
+
+export const signInWithGoogle = () => signInWithProvider(googleProvider, "Google")
+
+export function signInWithApple(): Promise<User> {
+  const provider = new OAuthProvider("apple.com")
+  provider.addScope("email")
+  provider.addScope("name")
+  return signInWithProvider(provider, "Apple")
 }
 
 export async function signOutUser(): Promise<void> {

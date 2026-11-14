@@ -5,6 +5,7 @@ import { Download, MonitorSmartphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useInstall } from "@/components/pwa"
+import { ANDROID_APK_URL } from "@/lib/site-config"
 
 // Lets people install Sloth as an app (Windows, macOS, ChromeOS, Android) from Edge or Chrome.
 export function InstallAppCard() {
@@ -35,6 +36,12 @@ export function InstallAppCard() {
               <b>Add to Home Screen</b>.
             </p>
           )}
+          <p className="text-sm text-muted-foreground">
+            On Android you can also install the full app, with home-screen widgets.{" "}
+            <a href={ANDROID_APK_URL} download className="font-medium text-primary underline underline-offset-4">
+              Download the Android app
+            </a>
+          </p>
         </div>
       </div>
     </Card>

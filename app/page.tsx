@@ -15,8 +15,10 @@ import {
   Sparkles,
   MonitorSmartphone,
   Loader2,
+  Download,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ANDROID_APK_URL } from "@/lib/site-config"
 
 const features = [
   {
@@ -278,9 +280,17 @@ export default function HomePage() {
 
           <div className="mt-16 flex flex-col items-start justify-between gap-6 rounded-3xl bg-accent px-8 py-10 text-accent-foreground sm:flex-row sm:items-center">
             <p className="font-display text-2xl font-semibold text-balance sm:text-3xl">No rush. It&apos;s free whenever you&apos;re ready.</p>
-            <Button size="lg" asChild className="shrink-0">
-              <Link href="/signup">Create a free account</Link>
-            </Button>
+            <div className="flex shrink-0 flex-wrap gap-3">
+              <Button size="lg" asChild>
+                <Link href="/signup">Create a free account</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <a href={ANDROID_APK_URL} download>
+                  <Download className="h-4 w-4" aria-hidden />
+                  Download for Android
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
       </section>

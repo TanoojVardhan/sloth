@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { onAuthStateChange, signInWithEmail, signInWithGoogle, signOutUser, getCurrentUser } from "@/lib/firebase-auth"
+import { onAuthStateChange, signInWithEmail, signInWithGoogle, signInWithApple, signOutUser, getCurrentUser } from "@/lib/firebase-auth"
 import { getUser } from "@/lib/firebase-db"
 import { dropActiveKey, forgetCachedKey, rememberOnDevice, setPlainMode, useDataReady, useSetupRequested } from "@/lib/e2ee"
 import type { User } from "@/types/entities"
@@ -15,6 +15,7 @@ type AuthContextValue = {
   dataReady: boolean
   login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; code: string; message: string }>
   loginWithGoogle: () => Promise<{ ok: true } | { ok: false; code: string; message: string }>
+  loginWithApple: () => Promise<{ ok: true } | { ok: false; code: string; message: string }>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -92,6 +93,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const code = err?.code || "AUTH_ERROR"
           const message = err?.message || "Google login failed"
           return { ok: false as const, code, message }
+        }
+      },
+      async loginWithApple() {
+        try {
+          setUser(await signInWithApple())
+          return { ok: true as const }
+        } catch (error) {
+          const err = error as { code?: string; message?: string }
+          return { ok: false as const, code: err?.code || "AUTH_ERROR", message: err?.message || "Apple login failed" }
         }
       },
       async logout() {

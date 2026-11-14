@@ -1,5 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
+import { ANDROID_APK_URL } from "@/lib/site-config"
 
 const groups = [
   {
@@ -43,6 +44,13 @@ export function SiteFooter() {
           <p className="mt-4 text-sm leading-relaxed text-sidebar-foreground/65">
             Tasks, notes, classes and goals in one unhurried place. Add a passphrase and only you can read it.
           </p>
+          <a
+            href={ANDROID_APK_URL}
+            download
+            className="mt-4 inline-block text-sm font-medium underline underline-offset-4 hover:text-sidebar-primary"
+          >
+            Download the Android app
+          </a>
         </div>
         {groups.map((g) => (
           <nav key={g.title} aria-label={g.title}>
