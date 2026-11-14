@@ -22,7 +22,7 @@ export function InstallAppCard() {
           ) : canInstall ? (
             <>
               <p className="text-sm text-muted-foreground">
-                Get Sloth in its own window with a Start menu and taskbar icon. Your passphrase and encryption work exactly the same.
+                Get Sloth in its own window with a Start menu and taskbar icon. Your account and data work exactly the same.
               </p>
               <Button onClick={async () => setDone(await install())}>
                 <Download className="mr-2 h-4 w-4" />

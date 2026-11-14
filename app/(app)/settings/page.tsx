@@ -30,8 +30,6 @@ import {
   Layout,
   Loader2,
   CalendarCheck,
-  ArrowRight,
-  CheckCircle2,
   KeyRound,
   ShieldCheck,
   Sun,
@@ -64,6 +62,7 @@ function SettingsForm({ user }: { user: User | null }) {
   const [name, setName] = useState(user?.name ?? "")
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -135,13 +134,14 @@ function SettingsForm({ user }: { user: User | null }) {
     if (!user) return
     setIsSaving(true)
     setSaveSuccess(false)
+    setSaveError(false)
     try {
       await updateUser(user.userId, { name: name.trim() || undefined })
       await refreshUser()
       setSaveSuccess(true)
     } catch (error) {
       console.error("Error saving profile:", error)
-      alert("Failed to save profile. Please try again.")
+      setSaveError(true)
     } finally {
       setIsSaving(false)
     }
@@ -152,10 +152,28 @@ function SettingsForm({ user }: { user: User | null }) {
       <PageHeader
         icon={Settings2}
         title="Settings"
-        description="Customize your experience and manage account preferences"
+        description="Your account, privacy and how the planner behaves."
       />
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-8 lg:grid-cols-[160px_minmax(0,1fr)]">
+        <nav aria-label="Settings sections" className="hidden lg:block">
+          <ul className="sticky top-8 space-y-1 text-sm">
+            {SECTIONS.map(([id, label]) => (
+              <li key={id}>
+                <a
+                  href={`#${id}`}
+                  className="block rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="max-w-2xl space-y-10">
+        <section id="account" className="scroll-mt-8 space-y-4">
+          <SectionLabel>Account</SectionLabel>
         <Card className="p-6">
           <div className="mb-6 flex items-center gap-2">
             <UserIcon className="h-5 w-5 text-muted-foreground" />
@@ -220,7 +238,7 @@ function SettingsForm({ user }: { user: User | null }) {
             <div className="space-y-2">
               <Label htmlFor="name" className="flex items-center gap-2">
                 <UserIcon className="h-4 w-4" />
-                Display Name
+                Display name
               </Label>
               <Input
                 id="name"
@@ -236,7 +254,7 @@ function SettingsForm({ user }: { user: User | null }) {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                Email Address
+                Email
               </Label>
               <Input
                 disabled
@@ -244,20 +262,21 @@ function SettingsForm({ user }: { user: User | null }) {
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
-                Email cannot be changed
+                Your email can&apos;t be changed.
               </p>
             </div>
 
             {saveSuccess && <p className="text-sm text-chart-1">Profile saved.</p>}
+            {saveError && <p className="text-sm text-destructive">Couldn&apos;t save your profile. Check your connection and try again.</p>}
 
-            <Button type="submit" disabled={isSaving} className="w-full">
+            <Button type="submit" disabled={isSaving}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
                 </>
               ) : (
-                "Save Profile"
+                "Save profile"
               )}
             </Button>
           </form>
@@ -314,7 +333,7 @@ function SettingsForm({ user }: { user: User | null }) {
                 <p className="text-sm text-chart-1">Password set. You can now sign in with email + password.</p>
               )}
 
-              <Button type="submit" disabled={isSettingPassword} className="w-full">
+              <Button type="submit" disabled={isSettingPassword}>
                 {isSettingPassword ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -327,65 +346,55 @@ function SettingsForm({ user }: { user: User | null }) {
             </form>
           )}
         </Card>
+        </section>
 
-        <div className="space-y-6">
+        <section id="privacy" className="scroll-mt-8 space-y-4">
+          <SectionLabel>Privacy</SectionLabel>
           <E2eeSettingsCard />
-          <InstallAppCard />
+        </section>
+
+        <section id="preferences" className="scroll-mt-8 space-y-4">
+          <SectionLabel>Preferences</SectionLabel>
           <OccupationCard user={user} onUserUpdated={refreshUser} />
-
           <AppearanceCard />
-
           <NotificationsCard user={user} onUserUpdated={refreshUser} />
+        </section>
 
-          {isConnected ? (
-            <Card className="border-accent/30 bg-accent/10 p-6">
-              <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15">
-                  <CheckCircle2 className="h-5 w-5 text-chart-1" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Google Calendar connected</h2>
-                  <p className="text-sm text-chart-1">Auto-sync active ✓</p>
-                </div>
+        <section id="apps" className="scroll-mt-8 space-y-4">
+          <SectionLabel>Apps and connections</SectionLabel>
+          <InstallAppCard />
+          <Card className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <CalendarCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div>
+                <h2 className="text-lg font-semibold">Google Calendar</h2>
+                <p className="text-sm text-muted-foreground">
+                  {isConnected
+                    ? "Connected. Tasks and events with a date are sent to your calendar automatically."
+                    : "Send the tasks and events you create here to your Google Calendar automatically."}
+                </p>
               </div>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Your Google Calendar is connected. All tasks and events with dates are automatically synced.
-              </p>
-              <Link href="/calendar-integration">
-                <Button variant="outline" className="w-full border-accent/40 hover:bg-accent/15">
-                  <CalendarCheck className="mr-2 h-4 w-4" />
-                  Manage Connection
-                </Button>
-              </Link>
-            </Card>
-          ) : (
-            <Card className="border-border p-6">
-              <div className="mb-6 flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                  <CalendarCheck className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold">Google Calendar</h2>
-                  <p className="text-sm text-muted-foreground">Auto-sync tasks & events</p>
-                </div>
-              </div>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Connect your Google Calendar to automatically sync all tasks and events you create.
-                Once connected, everything with a date will appear in your Google Calendar instantly.
-              </p>
-              <Link href="/calendar-integration">
-                <Button className="w-full">
-                  <CalendarCheck className="mr-2 h-4 w-4" />
-                  Connect calendar
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </Card>
-          )}
+            </div>
+            <Button asChild variant={isConnected ? "outline" : "default"} className="shrink-0">
+              <Link href="/calendar-integration">{isConnected ? "Manage" : "Connect"}</Link>
+            </Button>
+          </Card>
+        </section>
         </div>
       </div>
     </div>
   )
+}
+
+const SECTIONS = [
+  ["account", "Account"],
+  ["privacy", "Privacy"],
+  ["preferences", "Preferences"],
+  ["apps", "Apps and connections"],
+] as const
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p className="text-sm font-medium text-muted-foreground">{children}</p>
 }
 
 function OccupationCard({ user, onUserUpdated }: { user: User | null; onUserUpdated: () => Promise<void> }) {
@@ -491,14 +500,14 @@ function NotificationsCard({ user, onUserUpdated }: { user: User | null; onUserU
         <h2 className="text-lg font-semibold">Notifications</h2>
       </div>
       <div className="space-y-4">
-        <div className="flex items-center justify-between rounded-lg border p-4">
+        <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
           <div>
-            <div className="font-medium">Browser Notifications</div>
+            <div className="font-medium">Browser notifications</div>
             <div className="text-sm text-muted-foreground">
               Reminders for tasks due today, events, classes 10 minutes before they start, and assignment deadlines. They arrive while Sloth is open in a tab or as an installed app.
             </div>
           </div>
-          <Switch checked={enabled} disabled={isUpdating} onCheckedChange={handleToggle} />
+          <Switch className="shrink-0" checked={enabled} disabled={isUpdating} onCheckedChange={handleToggle} />
         </div>
         {permissionBlocked && (
           <p className="text-xs text-destructive">
