@@ -44,3 +44,7 @@ serviceAccountKey.json
 next-env.d.ts
 _stale/
 .sloth-src.tgz
+
+# Firebase service-account keys: never commit
+*firebase-adminsdk*.json
+serviceAccountKey.json
