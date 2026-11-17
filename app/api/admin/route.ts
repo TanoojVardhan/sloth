@@ -19,7 +19,16 @@ export async function POST(req: Request) {
   } catch (res) {
     return res as Response
   }
+  try {
+    return await handle(req)
+  } catch (e) {
+    console.error("admin route failed", e)
+    // Only a verified admin gets here, so it is safe to say what went wrong.
+    return NextResponse.json({ error: `Server error: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 })
+  }
+}
 
+async function handle(req: Request) {
   const body = (await req.json().catch(() => ({}))) as { action?: string; value?: number | null; email?: string }
   if (body.action === "me") return NextResponse.json({ admin: true }) // the sidebar uses this to decide whether to show the link
   const config = adminDb.collection("appConfig").doc("ai")

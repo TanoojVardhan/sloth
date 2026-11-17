@@ -10,7 +10,13 @@ if (!getApps().length) {
     // Check if service account path is provided
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
 
-    if (serviceAccountPath) {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      // Hosted (Vercel): there is no key file on disk, so the whole key file is pasted into this variable.
+      initializeApp({
+        credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)),
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      })
+    } else if (serviceAccountPath) {
       // Load service account from file
       const fullPath = join(/* turbopackIgnore: true */ process.cwd(), serviceAccountPath)
 
