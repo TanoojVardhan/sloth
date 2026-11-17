@@ -21,6 +21,7 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => ({}))) as { action?: string; value?: number | null; email?: string }
+  if (body.action === "me") return NextResponse.json({ admin: true }) // the sidebar uses this to decide whether to show the link
   const config = adminDb.collection("appConfig").doc("ai")
 
   if (body.action === "setLimit") {

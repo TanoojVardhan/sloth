@@ -3,6 +3,8 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
+import { auth } from "@/lib/firebase"
 import { useAuth } from "./auth-provider"
 import {
   LayoutDashboard,
@@ -21,6 +23,7 @@ import {
   GraduationCap,
   ClipboardList,
   BarChart3,
+  ShieldCheck,
 } from "lucide-react"
 import { openCommandPalette } from "./command-palette"
 import { Button } from "./ui/button"
@@ -56,6 +59,24 @@ interface SidebarProps {
 export function Sidebar({ className, onNavigate }: SidebarProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // The server decides who is an admin (ADMIN_EMAILS); everyone else just never gets the link.
+  useEffect(() => {
+    if (!user) return setIsAdmin(false)
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` },
+          body: JSON.stringify({ action: "me" }),
+        })
+        setIsAdmin(res.ok)
+      } catch {
+        setIsAdmin(false)
+      }
+    })()
+  }, [user])
 
   const linkClass = (active: boolean) =>
     cn(
@@ -116,6 +137,12 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       </nav>
 
       <div className="space-y-1 border-t border-sidebar-border p-3">
+        {isAdmin && (
+          <Link href="/admin" onClick={onNavigate} className={linkClass(pathname === "/admin")}>
+            <ShieldCheck className="h-[18px] w-[18px]" />
+            Admin
+          </Link>
+        )}
         <Link href="/settings" onClick={onNavigate} className={linkClass(pathname === "/settings")}>
           <Settings className="h-[18px] w-[18px]" />
           Settings
