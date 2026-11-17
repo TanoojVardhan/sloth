@@ -1,3 +1,4 @@
+import { geminiKeys } from "@/lib/gemini-keys"
 import { createHash } from "crypto"
 import { modelChain } from "./gemini-models"
 
@@ -266,7 +267,7 @@ const keyOf = (c: Item) =>
 export type AiTimetableResult = { table: string[][] } | { error: "no_key" | "busy" | "empty" | "failed" }
 
 export async function aiNormalizeTimetable(bytes: Uint8Array, grids: string[][][]): Promise<AiTimetableResult> {
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = geminiKeys()[0]
   if (!apiKey) return { error: "no_key" }
 
   const hash = createHash("sha256").update("v5").update(bytes).digest("hex")

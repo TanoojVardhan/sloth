@@ -5,6 +5,7 @@ import { Sparkles, X, Send, Loader2, Mic, Square } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { useTasks, useEvents, useGoals, useProjects } from "@/hooks/use-firebase-data"
 import { useLiveTranscribe } from "@/hooks/use-live-transcribe"
+import { auth } from "@/lib/firebase"
 import { cn } from "@/lib/utils"
 
 type ChatMessage = { role: "user" | "assistant"; content: string }
@@ -116,16 +117,20 @@ export function ChatbotWidget() {
     setInput("")
     setIsSending(true)
 
-    let share = false
+    // On unless the user switched it off in Settings.
+    let share = true
     try {
-      share = localStorage.getItem("sloth.ai.share") === "1"
+      share = localStorage.getItem("sloth.ai.share") !== "0"
     } catch {
-      /* private mode: stay off */
+      /* private mode: keep the default */
     }
     try {
       const res = await fetch("/api/ai/parse", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await auth.currentUser?.getIdToken()}`,
+        },
         body: JSON.stringify({
           message: text,
           // Your planner data only goes to the AI if you switched that on in Settings.

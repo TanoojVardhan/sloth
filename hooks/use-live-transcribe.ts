@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { auth } from "@/lib/firebase"
 
 const GEMINI_LIVE_URL =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained"
@@ -73,7 +74,10 @@ export function useLiveTranscribe() {
     try {
       // 1. Get a short-lived token from our own server — the real API key
       // never leaves it.
-      const tokenRes = await fetch("/api/ai/live-token", { method: "POST" })
+      const tokenRes = await fetch("/api/ai/live-token", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` },
+      })
       const tokenData = await tokenRes.json()
       if (!tokenRes.ok || !tokenData.token) {
         setError(tokenData.error || "Couldn't start live transcription.")

@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server"
 import { modelChain } from "@/lib/gemini-models"
+import { verifyIdTokenLite } from "@/lib/verify-token"
+import { geminiKeys } from "@/lib/gemini-keys"
+import { dailyLimit, dayKey, isUnlimited, takeQuota } from "@/lib/ai-quota"
+import { getAiConfig } from "@/lib/ai-config"
+import { isVulgar } from "@/lib/profanity"
+import { adminDb } from "@/lib/firebase-admin"
+import { FieldValue } from "firebase-admin/firestore"
 
 export const runtime = "nodejs"
 
@@ -208,8 +215,12 @@ async function callGemini(apiKey: string, prompt: string): Promise<{ res: Respon
 }
 
 export async function POST(request: Request) {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) {
+  const token = request.headers.get("authorization")?.replace("Bearer ", "")
+  const verified = token ? await verifyIdTokenLite(token) : null
+  if (!verified?.success) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+
+  const keys = geminiKeys()
+  if (!keys.length) {
     return NextResponse.json(
       { action: "chat", reply: "AI isn't set up yet — add a GEMINI_API_KEY to .env.local and restart the server." },
       { status: 200 },
@@ -234,10 +245,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ action: "chat", reply: "Say something and I'll take it from there." }, { status: 200 })
   }
 
+  const cfg = await getAiConfig()
+  if (verified.email && cfg.blocked.includes(verified.email.toLowerCase())) {
+    return NextResponse.json({ action: "chat", reply: "The AI assistant is turned off for your account. The rest of the planner still works." }, { status: 200 })
+  }
+
+  // Flag abusive language for the admin page. Only who and when is kept, never the message itself.
+  if (isVulgar(message)) {
+    void adminDb
+      .collection("aiFlags")
+      .doc(`${verified.uid}_${dayKey()}`)
+      .set({ uid: verified.uid, email: verified.email ?? "", day: dayKey(), count: FieldValue.increment(1), last: FieldValue.serverTimestamp() }, { merge: true })
+      .catch(() => undefined)
+  }
+
+  const limit = await dailyLimit()
+  const quota = await takeQuota(verified.uid, await isUnlimited(verified.email, verified.emailVerified), limit)
+  if (!quota.ok) {
+    return NextResponse.json(
+      { action: "chat", reply: `You've used today's ${limit} AI messages. It resets at midnight IST. Everything else in the planner still works.` },
+      { status: 200 },
+    )
+  }
+
   const prompt = buildPrompt(message, body.projects ?? [], body.tasks ?? [], body.events ?? [], body.history ?? [])
 
   try {
-    const { res, model } = await callGemini(apiKey, prompt)
+    // Several keys: when one is out of quota on every model, try the next.
+    let result = await callGemini(keys[0], prompt)
+    for (const key of keys.slice(1)) {
+      if (result.res.ok || (result.res.status !== 429 && result.res.status !== 503)) break
+      result = await callGemini(key, prompt)
+    }
+    const { res, model } = result
 
     if (!res.ok) {
       const errText = await res.text()

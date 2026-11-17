@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { verifyIdTokenLite } from "@/lib/verify-token"
+import { geminiKeys } from "@/lib/gemini-keys"
 
 export const runtime = "nodejs"
 
@@ -13,14 +15,18 @@ const TRANSCRIBE_MODEL = "models/gemini-3.5-transcribe-live"
  * transcription work on Vercel: minting a token is one quick REST call
  * (a normal serverless function), unlike holding open a WebSocket relay
  * (which Vercel's serverless functions can't do). See
- * hooks/use-live-transcribe.ts for the client side.
+ * hooks/use-live-transcribe.ts (website) and ai/LiveTranscriber.kt (Android) for the client side.
  *
  * The token is single-use, restricted to the transcription model, and
  * expires in a few minutes either way — if it leaks, there's nothing
  * lasting to abuse.
  */
-export async function POST() {
-  const apiKey = process.env.GEMINI_API_KEY
+export async function POST(req: Request) {
+  const idToken = req.headers.get("authorization")?.replace("Bearer ", "")
+  const verified = idToken ? await verifyIdTokenLite(idToken) : null
+  if (!verified?.success) return NextResponse.json({ error: "Please sign in first." }, { status: 401 })
+
+  const apiKey = geminiKeys()[0]
   if (!apiKey) {
     return NextResponse.json({ error: "AI isn't set up yet — add a GEMINI_API_KEY to .env.local." }, { status: 500 })
   }

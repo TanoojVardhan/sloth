@@ -3,8 +3,9 @@
 import type React from "react"
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { onAuthStateChange, signInWithEmail, signInWithGoogle, signInWithApple, signOutUser, getCurrentUser } from "@/lib/firebase-auth"
+import { onAuthStateChange, signInWithEmail, signInWithGoogle, signInWithApple, signInWithGithub, signOutUser, getCurrentUser } from "@/lib/firebase-auth"
 import { getUser } from "@/lib/firebase-db"
+import { mfa, mfaPassedFor, rememberMfaPass } from "@/lib/mfa-client"
 import { dropActiveKey, forgetCachedKey, rememberOnDevice, setPlainMode, useDataReady, useSetupRequested } from "@/lib/e2ee"
 import type { User } from "@/types/entities"
 
@@ -16,6 +17,10 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; code: string; message: string }>
   loginWithGoogle: () => Promise<{ ok: true } | { ok: false; code: string; message: string }>
   loginWithApple: () => Promise<{ ok: true } | { ok: false; code: string; message: string }>
+  loginWithGithub: () => Promise<{ ok: true } | { ok: false; code: string; message: string }>
+  /** "pending" = the account has two-step verification on and the code hasn't been entered yet. */
+  mfa: "unknown" | "pending" | "ok"
+  passMfa: () => void
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -25,6 +30,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUserState] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mfaState, setMfaState] = useState<"unknown" | "pending" | "ok">("unknown")
   const keyReady = useDataReady()
   const settingUp = useSetupRequested()
 
@@ -48,12 +54,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // User is signed in, get user data from Firestore
         try {
           const userData = await getUser(firebaseUser.uid)
+          // ponytail: if the status call fails we let the user in. This gate is client-side only anyway
+          // (see /api/mfa); a real server-enforced second factor needs Identity Platform.
+          const enabled = mfaPassedFor(firebaseUser.uid) ? false : await mfa("status").then((r) => !!r.enabled, () => false)
+          setMfaState(enabled ? "pending" : "ok")
           setUser(userData)
         } catch {
           setUser(null)
         }
       } else {
         // User is signed out: the key must not outlive the session in memory.
+        setMfaState("unknown")
         dropActiveKey()
         setUser(null)
       }
@@ -70,7 +81,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       loading,
-      dataReady: !!user && !settingUp && (user.e2ee ? keyReady : true),
+      dataReady: !!user && mfaState === "ok" && !settingUp && (user.e2ee ? keyReady : true),
+      mfa: mfaState,
+      passMfa() {
+        const uid = getCurrentUser()?.uid
+        if (uid) rememberMfaPass(uid)
+        setMfaState("ok")
+      },
       async login(email, password) {
         try {
           const u = await signInWithEmail(email, password)
@@ -104,6 +121,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { ok: false as const, code: err?.code || "AUTH_ERROR", message: err?.message || "Apple login failed" }
         }
       },
+      async loginWithGithub() {
+        try {
+          setUser(await signInWithGithub())
+          return { ok: true as const }
+        } catch (error) {
+          const err = error as { code?: string; message?: string }
+          return { ok: false as const, code: err?.code || "AUTH_ERROR", message: err?.message || "GitHub login failed" }
+        }
+      },
       async logout() {
         try {
           const uid = getCurrentUser()?.uid
@@ -127,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setUser only wraps a stable state setter
-    [user, loading, keyReady, settingUp],
+    [user, loading, keyReady, settingUp, mfaState],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

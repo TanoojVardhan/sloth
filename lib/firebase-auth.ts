@@ -4,7 +4,9 @@ import {
   signOut,
   signInWithPopup,
   GoogleAuthProvider,
+  GithubAuthProvider,
   OAuthProvider,
+  sendEmailVerification,
   type AuthProvider,
   EmailAuthProvider,
   linkWithCredential,
@@ -31,6 +33,8 @@ export async function signUpWithEmail(email: string, password: string, name?: st
     }
 
     await createUser(firebaseUser.uid, userData)
+    // Best-effort: a failed mail must not fail the signup.
+    sendEmailVerification(firebaseUser).catch(() => {})
 
     return {
       userId: firebaseUser.uid,
@@ -89,6 +93,8 @@ async function signInWithProvider(provider: AuthProvider, label: string): Promis
 }
 
 export const signInWithGoogle = () => signInWithProvider(googleProvider, "Google")
+
+export const signInWithGithub = () => signInWithProvider(new GithubAuthProvider(), "GitHub")
 
 export function signInWithApple(): Promise<User> {
   const provider = new OAuthProvider("apple.com")

@@ -4,7 +4,7 @@
 // for us over plain HTTPS, so no extra packages or service account are needed.
 export async function verifyIdTokenLite(
   idToken: string,
-): Promise<{ success: true; uid: string } | { success: false }> {
+): Promise<{ success: true; uid: string; email?: string; emailVerified?: boolean } | { success: false }> {
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
   if (!apiKey || !idToken) return { success: false }
   try {
@@ -18,9 +18,9 @@ export async function verifyIdTokenLite(
       },
     )
     if (!res.ok) return { success: false }
-    const data = (await res.json()) as { users?: { localId?: string }[] }
-    const uid = data.users?.[0]?.localId
-    return uid ? { success: true, uid } : { success: false }
+    const data = (await res.json()) as { users?: { localId?: string; email?: string; emailVerified?: boolean }[] }
+    const user = data.users?.[0]
+    return user?.localId ? { success: true, uid: user.localId, email: user.email, emailVerified: user.emailVerified } : { success: false }
   } catch {
     return { success: false }
   }

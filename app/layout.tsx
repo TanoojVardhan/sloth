@@ -11,6 +11,7 @@ import { AuthProvider } from "@/components/auth-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AppChrome } from "@/components/app-chrome"
 import { PwaRegister } from "@/components/pwa"
+import { PageTracker } from "@/components/page-tracker"
 
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", display: "swap" })
 
@@ -54,6 +55,9 @@ export default function RootLayout({
             </AuthProvider>
           </Suspense>
           <Analytics />
+          <Suspense fallback={null}>
+            <PageTracker />
+          </Suspense>
           <PwaRegister />
         </ThemeProvider>
       </body>

@@ -15,9 +15,10 @@ import { CommandPalette } from "@/components/command-palette"
 import { OccupationOnboarding } from "@/components/occupation-picker"
 import { TimetableAutoSync } from "@/components/timetable-auto-sync"
 import { E2eeGate } from "@/components/e2ee-gate"
+import { MfaGate } from "@/components/mfa"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, dataReady } = useAuth()
+  const { user, loading, dataReady, mfa } = useAuth()
   const router = useRouter()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
@@ -74,7 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <main className="flex-1">
-          <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-9 lg:px-10">{dataReady ? children : <E2eeGate />}</div>
+          <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-9 lg:px-10">{dataReady ? children : mfa === "pending" ? <MfaGate /> : <E2eeGate />}</div>
         </main>
       </div>
     </div>

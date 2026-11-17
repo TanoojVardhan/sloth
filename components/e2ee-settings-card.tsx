@@ -15,9 +15,9 @@ const MIN_LENGTH = 10
 
 function readShare(): boolean {
   try {
-    return localStorage.getItem("sloth.ai.share") === "1"
+    return localStorage.getItem("sloth.ai.share") !== "0" // on unless switched off
   } catch {
-    return false
+    return true
   }
 }
 
@@ -52,7 +52,7 @@ export function E2eeSettingsCard() {
       <span>
         Let the AI assistant see my tasks and events
         <span className="block text-xs text-muted-foreground">
-          Off by default. When on, your task and event titles are sent to Google Gemini with each chat message so it can answer questions about them. What you type to the assistant is always sent.
+          On by default. Your task and event titles are sent to Google Gemini with each chat message so it can answer questions about them. Turn it off to keep them private. What you type to the assistant is always sent.
         </span>
       </span>
     </label>

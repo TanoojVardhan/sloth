@@ -64,6 +64,12 @@ service cloud.firestore {
     // Server only.
     match /userTokens/{id} { allow read, write: if false; }
     match /oauthState/{id} { allow read, write: if false; }
+    match /userMfa/{id} { allow read, write: if false; }
+    match /aiUsage/{id} { allow read, write: if false; }
+    match /appConfig/{id} { allow read, write: if false; }
+    match /traffic/{id} { allow read, write: if false; }
+    match /trafficVisitors/{id} { allow read, write: if false; }
+    match /aiFlags/{id} { allow read, write: if false; }
 
     // Everything else is closed.
     match /{document=**} {

@@ -15,6 +15,8 @@ import { useAuth } from "@/components/auth-provider"
 import { useGoogleCalendar } from "@/hooks/use-google-calendar"
 import { hasPasswordProvider, addPasswordToAccount } from "@/lib/firebase-auth"
 import { E2eeSettingsCard } from "@/components/e2ee-settings-card"
+import { MfaSettingsCard } from "@/components/mfa"
+import { AiUsageCard } from "@/components/ai-usage"
 import { InstallAppCard } from "@/components/install-app-card"
 import { updateUser } from "@/lib/firebase-db"
 import { uploadAvatar, deleteAvatarByUrl } from "@/lib/firebase-storage"
@@ -351,6 +353,8 @@ function SettingsForm({ user }: { user: User | null }) {
         <section id="privacy" className="scroll-mt-8 space-y-4">
           <SectionLabel>Privacy</SectionLabel>
           <E2eeSettingsCard />
+          <MfaSettingsCard />
+          <AiUsageCard />
         </section>
 
         <section id="preferences" className="scroll-mt-8 space-y-4">

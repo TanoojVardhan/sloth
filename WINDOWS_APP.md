@@ -1,6 +1,6 @@
 # Sloth Planner on Windows
 
-Sloth is an installable web app (PWA). Everything runs from https://slothplanner.vercel.app,
+Sloth is an installable web app (PWA). Everything runs from https://slothplanner.tanoojvardhan.com,
 so the Windows app always has the latest version and the same encryption as the website.
 
 ## Option 1: Install from the browser (free, works today)
